@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Três Modos Alternáveis - Diagnóstico</title>
+    <title>Três Modos Alternáveis</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.js"></script>
     <style>
@@ -59,239 +59,423 @@
             position: fixed;
             bottom: 10px;
             left: 10px;
-            background: rgba(255,255,255,0.9);
-            color: black;
+            background: rgba(255,255,255,0.1);
+            color: white;
             padding: 8px 12px;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 10px;
             z-index: 1000;
             font-family: 'Courier New', monospace;
-            max-width: 80%;
-            white-space: pre-line;
-        }
-
-        .loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #1a1a2e;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            font-family: 'Courier New', monospace;
-        }
-
-        .error-list {
-            color: #ff6b6b;
-            margin-top: 20px;
-            text-align: left;
-            max-width: 80%;
-            font-size: 14px;
         }
     </style>
 </head>
 <body>
-    <div class="loading-screen" id="loadingScreen">
-        <h2>Diagnóstico de Carregamento</h2>
-        <div id="loadingProgress">Verificando recursos...</div>
-        <div class="error-list" id="errorList"></div>
-        <div style="margin-top: 20px; font-size: 12px;">
-            Pressione F12 para ver console detalhado
-        </div>
-    </div>
-
-    <div class="mode-indicator" id="modeIndicator">[diagnóstico] > X</div>
+    <div class="mode-indicator" id="modeIndicator">[caderno / diagramas] > X</div>
     <div class="mode-indicator2" id="modeIndicator2">[sonhos] > S / M </div>
     <div class="mode-indicator3" id="modeIndicator3">[sons] > A </div>
-    <div class="debug-info" id="debugInfo">Iniciando diagnóstico...</div>
-    
+    <!--
+    <div class="debug-info" id="debugInfo">Debug: Carregando...</div>
+    -->
     <script>
         // ===========================================
-        // DIAGNÓSTICO DETALHADO
+        // SISTEMA DE ALTERNÂNCIA ENTRE MODOS
         // ===========================================
-        let diagnosticLog = [];
-        let resourceErrors = [];
-        let loadingProgress = 0;
-        let totalResources = 0;
-        let loadedResources = 0;
-
-        function log(message) {
-            const timestamp = new Date().toLocaleTimeString();
-            const logEntry = `[${timestamp}] ${message}`;
-            diagnosticLog.push(logEntry);
-            console.log(logEntry);
-            updateDiagnosticDisplay();
-        }
-
-        function logError(message) {
-            resourceErrors.push(message);
-            log(`ERRO: ${message}`);
-            updateErrorDisplay();
-        }
-
-        function updateDiagnosticDisplay() {
-            const debugDiv = document.getElementById('debugInfo');
-            if (debugDiv) {
-                debugDiv.textContent = diagnosticLog.slice(-5).join('\n');
-            }
-        }
-
-        function updateErrorDisplay() {
-            const errorDiv = document.getElementById('errorList');
-            const progressDiv = document.getElementById('loadingProgress');
-            
-            if (errorDiv) {
-                errorDiv.innerHTML = resourceErrors.map(err => `• ${err}`).join('<br>');
-            }
-            
-            if (progressDiv) {
-                progressDiv.textContent = `Carregado: ${loadedResources}/${totalResources} recursos`;
-            }
-        }
-
+        let currentAppMode = 'slideshow'; // 'slideshow', 'palavras', 'video' ou 'textos'
+        
         // ===========================================
-        // MODO APENAS PALAVRAS (SEM RECURSOS EXTERNOS)
+        // VARIÁVEIS DO MODO SLIDESHOW
         // ===========================================
-        let currentAppMode = 'palavras';
+        const imageFiles = [
+            '1.jpg',
+            '2.jpg',
+            '3.jpg',
+            '4.jpg',
+            '5.jpg',
+            '6.jpg',
+            '7.jpg',
+            '8.jpg',
+            '9.jpg',
+            '10.jpg',
+            '11.jpg',
+            '12.jpg',
+            '13.jpg',
+            '14.jpg',
+            '15.jpg',
+            '16.jpg',
+            '17.jpg',
+            '18.jpg',
+            '19.jpg',
+            '20.jpg',
+            '21.jpg',
+            '22.jpg',
+            '23.jpg',
+            '24.jpg',
+            '25.jpg',
+            '26.jpg'
+        ];
+        
+        let images = [];
+        let loadedImages = {}; // Objeto para mapear índices às imagens carregadas
+        let currentImage = null;
+        let currentCrop = null;
+        let nextChangeTime = 0;
+        let imagesLoaded = 0;
+        let totalImages = imageFiles.length;
+        let imageLoadErrors = 0;
+        
+        // ===========================================
+        // VARIÁVEIS DO MODO PALAVRAS
+        // ===========================================
         let conceptBoxes = [];
         let centerBox;
         let canvasWidth, canvasHeight;
+        let RanDist = 50;
+        let lastRanDistChange = 0;
+        let ranDistChangeInterval = 5000;
+        
+        // Variáveis para mobile
+        let isMobile = false;
+        let virtualMouseX, virtualMouseY;
+        let targetX, targetY;
+        let currentSpeed = 0.01;
+        let targetSpeed = 0.01;
+        let lastSpeedChange = 0;
+        let speedChangeInterval = 5000;
+        let wanderAngle = 0;
+        let wanderSpeed = 0.008;
 
-        // Lista de conceitos (funciona sempre)
+        // Sistema de alternância entre modos de palavras
+        let currentMode = 'attraction';
+        let lastModeChange = 0;
+        let modeChangeInterval = 10000;
+        let transitionDuration = 2000;
+        let isTransitioning = false;
+        let transitionStartTime = 0;
+
+        // Lista de conceitos
         const allConcepts = [
-            "inteligência", "artificial", "sonhos", "espectros", "memória", "arquivo",
-            "tempo", "anacronia", "vestígio", "bio", "tecno", "conjurar", "extinção",
-            "vida", "morte", "registro", "experiência", "pensamento", "transformação",
-            "real", "abstração", "afeto", "ciência", "objeto", "presença", "ausência"
+            "inteligência", "artificial", "não-fisiológico", "fisiológico", "sensorial", "racional",
+            "conceito", "ontologia", "episteme", "consciente", "não-consciente", "arquivo",
+            "memória", "arte", "especulação","sensível","reinventar","produzir",
+            "tempo","anacronia","assombra","vestígio","bio","tecno","não-bio","não-tecno",
+            "conjurar","extinção","continuidade","gaia","aceleração","problema",
+            "ficar-com","vida","morte","atemporal","registro","relato","experiência",
+            "pensamento","fóssil","confronto","transformação","invenção","onde","local","global",
+            "plantar","anomia","ruído","inferência","real","não-real","abstração","causa",
+            "efeito","afeto","ciência","objeto","malha","teia","sequência","aleatório","singular",
+            "objetivo","subjetivo","resíduo","durante","antes","depois","presença","ausência",
+            "sentidos","público","partitura","matemática","aqui","lá","ali","fronteira","espécie",
+            "interespécie","dobra","finito","não-finito","escala","vazio","não-vazio",
+            "espectralismo", "espectros", "perspectivismo", "anástrofe", "catástrofe", 
+            "presságio", "fabulação", "fora", "dentro", "passado", 
+            "futuro", "agora", "corpo", "mente", "algoritmo", "sonhos"
         ];
 
-        // Textos (funciona sempre)
-        const shortTexts = [
-            `sonho = espectro?
+        // ===========================================
+        // VARIÁVEIS DO MODO VIDEO
+        // ===========================================
+        let video;
+        let videoPlaying = false;
+        let videoLoaded = false;
+        
+        // ===========================================
+        // VARIÁVEIS DO MODO TEXTOS
+        // ===========================================
+const shortTexts = [
+    `espectralismo:
+/
+política de arquivo 
+(memória coletiva / compartilhada)
+< reinventar o passado histórico / arquivado
+> produzir futuros
+~ sensorialização dos sinais dos tempos compostos
+/
+/
+sonhos:
+/
+política de memórias
+< reinventar memórias / pontos de 
+vi(st/d)a singulares do passado
+> produzir futuros
+~ sensorialização dos sinais dos tempos compostos`,
+
+    `sonho = espectro?
 
 sonho pertence ao 
 conjunto dos espectros?
 /
->> sonhar é conjurar espectros?`,
+os conjuntos 
+"sonho" 
+e 
+"espectro" 
+se intersectam?
+/
+>> - - - - > sonhar é conjurar espectros?`,
 
-            `o pensamento continua depois 
-da (extinção da) humanidade?
+    `[ órgão sensoriais não fisiológicos ]
+IAs simulam órgãos sensoriais?
+Sonhos simulam órgãos sensoriais?
+/
+(se) toda percepção está vinculada às especificidades 
+(eco)sistêmicas e moleculares:
+/
+IA 
+sistemas virtuais / artificiais / sintéticos?
+moléculas de silício / artificiais / sintéticas?
+/
+Sonho
+memórias / Fauna mental
+moléculas biológicas`,
+
+    `vestígio: passado no presente
+catástrofe: passado caindo sobre o presente
+anástrofe: futuro caindo sobre o presente
+presságio: futuro no presente`,
+
+    `sonho é anastrófico
+sonho é presságio de vestígio(s)
+/
+presságio: futuro no presente
+vestígio: passado no presente
+/
+sonho: passado (memória) montado/editado por futuros?
+/
+sonho como sensorialização 
+dos sinais dos tempos compostos`,
+
+    `o pensamento continua depois 
+    da (extinção da) humanidade?
 /
 o sonho continua depois 
-da (extinção da) humanidade?`,
-
-            `[ órgãos sensoriais não fisiológicos ]
-IAs simulam órgãos sensoriais?
-Sonhos simulam órgãos sensoriais?`
-        ];
-
+da (extinção da) humanidade?`
+];
+        
         let currentTextIndex = 0;
         let textBackgroundColor;
         let textFontColor;
-
+        let textSizeCalculated = 14;
+        let textLines = [];
+        
         // ===========================================
-        // TESTE DE RECURSOS (SEM CARREGAR)
+        // VARIÁVEIS DO SISTEMA DE ÁUDIO
         // ===========================================
-        async function testResources() {
-            log("Iniciando teste de recursos...");
-            
-            // Lista de recursos para testar
-            const imageFiles = ['1.jpg', '2.jpg', '3.jpg', '4.jpg', '5.jpg'];
-            const soundFiles = ['1.wav', '2.wav', 'som.wav'];
-            const videoFiles = ['out.mp4'];
-            
-            totalResources = imageFiles.length + soundFiles.length + videoFiles.length;
-            
-            // Testar imagens
-            log("Testando imagens...");
-            for (let file of imageFiles) {
-                try {
-                    const response = await fetch(file, { method: 'HEAD' });
-                    if (response.ok) {
-                        log(`✓ Imagem encontrada: ${file}`);
-                        loadedResources++;
-                    } else {
-                        logError(`✗ Imagem não encontrada: ${file} (${response.status})`);
-                    }
-                } catch (err) {
-                    logError(`✗ Erro ao acessar imagem: ${file} - ${err.message}`);
-                }
-                updateErrorDisplay();
-                await new Promise(resolve => setTimeout(resolve, 100)); // Pequeno delay
-            }
-            
-            // Testar sons
-            log("Testando sons...");
-            for (let file of soundFiles) {
-                try {
-                    const response = await fetch(file, { method: 'HEAD' });
-                    if (response.ok) {
-                        log(`✓ Som encontrado: ${file}`);
-                        loadedResources++;
-                    } else {
-                        logError(`✗ Som não encontrado: ${file} (${response.status})`);
-                    }
-                } catch (err) {
-                    logError(`✗ Erro ao acessar som: ${file} - ${err.message}`);
-                }
-                updateErrorDisplay();
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-            
-            // Testar vídeo
-            log("Testando vídeo...");
-            for (let file of videoFiles) {
-                try {
-                    const response = await fetch(file, { method: 'HEAD' });
-                    if (response.ok) {
-                        log(`✓ Vídeo encontrado: ${file}`);
-                        loadedResources++;
-                    } else {
-                        logError(`✗ Vídeo não encontrado: ${file} (${response.status})`);
-                    }
-                } catch (err) {
-                    logError(`✗ Erro ao acessar vídeo: ${file} - ${err.message}`);
-                }
-                updateErrorDisplay();
-            }
-            
-            log(`Diagnóstico completo: ${loadedResources}/${totalResources} recursos disponíveis`);
-            
-            // Aguardar um pouco e então iniciar o modo seguro
-            setTimeout(startSafeMode, 2000);
-        }
+        let sounds = [];
+        let soundFiles = [];
+        let currentSoundIndex = -1;
+        let soundPlaying = false;
+        let audioVolume = 1.0;
+        let ambientSound;
+        let ambientVolume = 0;
 
-        function startSafeMode() {
-            log("Iniciando modo seguro (apenas palavras e textos)...");
-            document.getElementById('loadingScreen').style.display = 'none';
+        // Preencher array com nomes dos arquivos (1.wav a 120.wav)
+        for (let i = 1; i <= 102; i++) {
+            soundFiles.push(`${i}.wav`);
         }
 
         // ===========================================
-        // SETUP SEM PRELOAD
+        // FUNÇÕES DE DEBUG
         // ===========================================
+        function updateDebugInfo(info) {
+            const debugDiv = document.getElementById('debugInfo');
+            if (debugDiv) {
+                debugDiv.textContent = `Debug: ${info}`;
+            }
+            console.log(`Debug: ${info}`);
+        }
+
+        // ===========================================
+        // SETUP PRINCIPAL
+        // ===========================================
+        function preload() {
+            updateDebugInfo('Iniciando preload...');
+            
+            // Carregar imagens para o modo slideshow
+            for (let i = 0; i < imageFiles.length; i++) {
+                loadImage(imageFiles[i], 
+                    (img) => {
+                        loadedImages[i] = img; // Mapeia o índice à imagem
+                        imagesLoaded++;
+                        console.log(`Imagem ${i+1} carregada: ${imageFiles[i]}`);
+                        updateDebugInfo(`Carregando: ${imagesLoaded}/${totalImages} imagens`);
+                    },
+                    () => {
+                        console.log(`Erro ao carregar: ${imageFiles[i]}`);
+                        imageLoadErrors++;
+                        imagesLoaded++;
+                        updateDebugInfo(`Erro ao carregar imagem ${i+1}`);
+                    }
+                );
+            }
+            
+            // Carregar vídeo para o modo video
+            video = createVideo(['out.mp4'], () => {
+                console.log('Vídeo carregado');
+                videoLoaded = true;
+                video.volume(0);
+                video.speed(0.9);
+                video.hide();
+            });
+
+            // Carregar sons
+            for (let i = 0; i < soundFiles.length; i++) {
+                sounds[i] = loadSound(soundFiles[i], 
+                    () => console.log(`Áudio ${i+1} carregado`),
+                    () => console.log(`Erro ao carregar áudio ${i+1}`)
+                );
+            }
+
+            // Carregar som ambiente
+            ambientSound = loadSound('som.wav', 
+                () => console.log('Som ambiente carregado'),
+                () => console.log('Erro ao carregar som ambiente')
+            );
+        }
+        
         function setup() {
-            log("Setup iniciado...");
+            updateDebugInfo('Iniciando setup...');
             
             canvasWidth = windowWidth;
             canvasHeight = windowHeight;
             createCanvas(canvasWidth, canvasHeight);
             
+            // Criar array de imagens na ordem correta
+            images = [];
+            for (let i = 0; i < imageFiles.length; i++) {
+                if (loadedImages[i]) {
+                    images.push(loadedImages[i]);
+                }
+            }
+            
+            console.log(`Total de imagens carregadas: ${images.length} de ${totalImages}`);
+            updateDebugInfo(`Setup: ${images.length} imagens prontas, ${imageLoadErrors} erros`);
+            
+            // Detectar mobile
+            isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                      ('ontouchstart' in window) || 
+                      (navigator.maxTouchPoints > 0);
+            
+            // Inicializar posição virtual
+            virtualMouseX = canvasWidth / 2;
+            virtualMouseY = canvasHeight / 2;
+            targetX = random(0, canvasWidth);
+            targetY = random(0, canvasHeight);
+            
+            // Inicializar modo slideshow
+            initializeSlideshow();
+            
+            // Inicializar modo palavras
             initializePalavras();
             
-            log("Canvas criado, iniciando modo palavras...");
             updateModeIndicator();
+
+            // Inicializar som ambiente
+            if (ambientSound) {
+                ambientSound.loop();
+                ambientSound.setVolume(0);
+            }
+            
+            updateDebugInfo('Setup completo');
         }
 
+        // ===========================================
+        // FUNÇÕES DO MODO SLIDESHOW
+        // ===========================================
+        function initializeSlideshow() {
+            updateDebugInfo(`Inicializando slideshow com ${images.length} imagens`);
+            if (images.length > 0) {
+                loadNewRandomCrop();
+                scheduleNextChange();
+            } else {
+                console.log("Nenhuma imagem foi carregada!");
+                updateDebugInfo("ERRO: Nenhuma imagem carregada!");
+            }
+        }
+        
+        function loadNewRandomCrop() {
+            if (images.length === 0) {
+                console.log("Array de imagens está vazio!");
+                updateDebugInfo("ERRO: Array de imagens vazio!");
+                return;
+            }
+            
+            const randomIndex = Math.floor(Math.random() * images.length);
+            currentImage = images[randomIndex];
+            console.log(`Selecionada imagem ${randomIndex + 1} de ${images.length}`);
+            updateDebugInfo(`Slideshow: imagem ${randomIndex + 1}/${images.length}`);
+            generateRandomCrop();
+        }
+        
+        function generateRandomCrop() {
+            if (!currentImage) {
+                updateDebugInfo("ERRO: Sem imagem atual");
+                return;
+            }
+            
+            const imgW = currentImage.width;
+            const imgH = currentImage.height;
+            
+            if (imgW === 0 || imgH === 0) {
+                updateDebugInfo("ERRO: Imagem com dimensões inválidas");
+                return;
+            }
+            
+            const canvasRatio = width / height;
+            const imageRatio = imgW / imgH;
+            
+            const minSize = 0.50;
+            const maxSize = 0.90;
+            
+            let cropW, cropH;
+            
+            if (canvasRatio > imageRatio) {
+                cropW = imgW * (minSize + Math.random() * (maxSize - minSize));
+                cropH = cropW / canvasRatio;
+                
+                if (cropH > imgH) {
+                    cropH = imgH * (minSize + Math.random() * (maxSize - minSize));
+                    cropW = cropH * canvasRatio;
+                }
+            } else {
+                cropH = imgH * (minSize + Math.random() * (maxSize - minSize));
+                cropW = cropH * canvasRatio;
+                
+                if (cropW > imgW) {
+                    cropW = imgW * (minSize + Math.random() * (maxSize - minSize));
+                    cropH = cropW / canvasRatio;
+                }
+            }
+            
+            const maxX = imgW - cropW;
+            const maxY = imgH - cropH;
+            const cropX = Math.random() * maxX;
+            const cropY = Math.random() * maxY;
+            
+            currentCrop = {
+                x: cropX,
+                y: cropY,
+                w: cropW,
+                h: cropH
+            };
+            
+            console.log(`Crop gerado: ${Math.round(cropW)}x${Math.round(cropH)} em ${Math.round(cropX)},${Math.round(cropY)}`);
+        }
+        
+        function scheduleNextChange() {
+            const nextInterval = 3000 + Math.random() * 7000;
+            nextChangeTime = millis() + nextInterval;
+        }
+
+        // ===========================================
+        // FUNÇÕES DO MODO PALAVRAS
+        // ===========================================
         function initializePalavras() {
             conceptBoxes = [];
             
+            let centerConceptIndex = allConcepts.indexOf("sonhos");
+            let centerConceptText = allConcepts[centerConceptIndex];
+            
             centerBox = {
-                text: "sonhos",
+                text: centerConceptText,
                 textSize: 14,
                 padding: 12,
                 cornerRadius: 8
@@ -301,12 +485,12 @@ Sonhos simulam órgãos sensoriais?`
             let initialMarginY = canvasHeight * 0.05;
             
             for (let i = 0; i < allConcepts.length; i++) {
-                if (allConcepts[i] !== "sonhos") {
+                if (i !== centerConceptIndex) {
                     conceptBoxes.push(createConceptBox(allConcepts[i], initialMarginX, initialMarginY));
                 }
             }
             
-            log(`Modo palavras: ${conceptBoxes.length} conceitos criados`);
+            updateDebugInfo(`Palavras: ${conceptBoxes.length} conceitos criados`);
         }
 
         function createConceptBox(conceptText, marginX, marginY) {
@@ -314,58 +498,289 @@ Sonhos simulam órgãos sensoriais?`
                 x: random(marginX, canvasWidth - marginX),
                 y: random(marginY, canvasHeight - marginY),
                 text: conceptText,
+                
+                offsetX: random(-50, 50),
+                offsetY: random(-50, 50),
+                attractionSpeed: random(0.007, 0.23),
+                offsetChangeInterval: random(5, 10) * 1000,
+                lastOffsetChange: millis(),
+                intervalChangeTime: random(1, 5) * 1000,
+                lastIntervalChange: millis(),
+                
+                followOffsetX: random(-100, 100),
+                followOffsetY: random(-100, 100),
+                followSpeed: random(0.01, 0.1),
+                followOffsetChangeInterval: random(5, 10) * 1000,
+                lastFollowOffsetChange: millis(),
+                followIntervalChangeTime: random(1, 5) * 1000,
+                lastFollowIntervalChange: millis(),
+                
                 textSize: 14,
                 padding: 12,
                 cornerRadius: 8
             };
         }
 
-        function initializeTextos() {
-            currentTextIndex = floor(random(shortTexts.length));
-            textBackgroundColor = color(random(255), random(255), random(255));
-            textFontColor = color(random(255), random(255), random(255));
-            log(`Modo textos: texto ${currentTextIndex + 1} selecionado`);
-        }
-
-        // ===========================================
-        // DRAW FUNCTIONS
-        // ===========================================
-        function draw() {
-            try {
-                if (currentAppMode === 'palavras') {
-                    drawPalavras();
-                } else if (currentAppMode === 'textos') {
-                    drawTextos();
-                }
-            } catch (error) {
-                logError(`Erro no draw: ${error.message}`);
-            }
-        }
-
-        function drawPalavras() {
-            background(26, 26, 46);
+        function rotateCenterConcept() {
+            let currentCenterText = centerBox.text;
+            let referenceX = isMobile ? virtualMouseX : mouseX;
+            let referenceY = isMobile ? virtualMouseY : mouseY;
             
-            // Desenhar conceitos
+            let returnedConcept = createConceptBox(currentCenterText, canvasWidth * 0.05, canvasHeight * 0.05);
+            
+            let angle = random(TWO_PI);
+            let distance = random(50, 150);
+            returnedConcept.x = referenceX + cos(angle) * distance;
+            returnedConcept.y = referenceY + sin(angle) * distance;
+            
+            returnedConcept.x = constrain(returnedConcept.x, canvasWidth * 0.05, canvasWidth * 0.95);
+            returnedConcept.y = constrain(returnedConcept.y, canvasHeight * 0.05, canvasHeight * 0.95);
+            
+            conceptBoxes.push(returnedConcept);
+            
+            let randomIndex = Math.floor(random(conceptBoxes.length));
+            let newCenterConcept = conceptBoxes[randomIndex];
+            
+            centerBox.text = newCenterConcept.text;
+            conceptBoxes.splice(randomIndex, 1);
+        }
+
+        function disperseBoxes() {
+            let referenceX = isMobile ? virtualMouseX : mouseX;
+            let referenceY = isMobile ? virtualMouseY : mouseY;
+            
             for (let concept of conceptBoxes) {
-                drawConceptBox(concept, concept.x, concept.y);
+                let distance = dist(concept.x, concept.y, referenceX, referenceY);
+                
+                if (distance <= 150) {
+                    let angle = atan2(concept.y - referenceY, concept.x - referenceX);
+                    
+                    if (distance < 155) {
+                        angle = random(TWO_PI);
+                    }
+                    
+                    let newX = referenceX + cos(angle) * 200;
+                    let newY = referenceY + sin(angle) * 200;
+                    
+                    let margin = 50;
+                    newX = constrain(newX, margin, canvasWidth - margin);
+                    newY = constrain(newY, margin, canvasHeight - margin);
+                    
+                    concept.x = newX;
+                    concept.y = newY;
+                    
+                    concept.offsetX = newX - referenceX;
+                    concept.offsetY = newY - referenceY;
+                    concept.followOffsetX = newX - referenceX;
+                    concept.followOffsetY = newY - referenceY;
+                    
+                    let currentTime = millis();
+                    concept.lastOffsetChange = currentTime;
+                    concept.lastIntervalChange = currentTime;
+                    concept.lastFollowOffsetChange = currentTime;
+                    concept.lastFollowIntervalChange = currentTime;
+                }
             }
-            
-            // Desenhar conceito central
-            drawConceptBox(centerBox, mouseX, mouseY);
         }
 
-        function drawTextos() {
-            background(textBackgroundColor);
+        function updateVirtualMouse() {
+            let currentTime = millis();
             
-            push();
-            fill(textFontColor);
-            noStroke();
-            textFont('Courier New');
-            textSize(32);
-            textAlign(CENTER, CENTER);
+            if (currentTime - lastSpeedChange >= speedChangeInterval) {
+                targetSpeed = random(0.001, 0.004);
+                lastSpeedChange = currentTime;
+                speedChangeInterval = random(3000, 8000);
+            }
             
-            text(shortTexts[currentTextIndex], width/2, height/2);
-            pop();
+            currentSpeed = lerp(currentSpeed, targetSpeed, 0.03);
+            wanderAngle += random(-wanderSpeed, wanderSpeed);
+            
+            let distanceToTarget = dist(virtualMouseX, virtualMouseY, targetX, targetY);
+            let targetInfluence = map(distanceToTarget, 0, 300, 0.0005, 0.004);
+            
+            let moveX = cos(wanderAngle) * (currentSpeed * 800) + (targetX - virtualMouseX) * targetInfluence;
+            let moveY = sin(wanderAngle) * (currentSpeed * 800) + (targetY - virtualMouseY) * targetInfluence;
+            
+            let newX = virtualMouseX + moveX;
+            let newY = virtualMouseY + moveY;
+            
+            newX = constrain(newX, 0, canvasWidth);
+            newY = constrain(newY, 0, canvasHeight);
+            
+            if (newX <= 0 || newX >= canvasWidth || 
+                newY <= 0 || newY >= canvasHeight) {
+                let centerX = canvasWidth * 0.5;
+                let centerY = canvasHeight * 0.5;
+                targetX = random(centerX - 100, centerX + 100);
+                targetY = random(centerY - 100, centerY + 100);
+                wanderAngle = random(TWO_PI);
+            }
+            
+            virtualMouseX = newX;
+            virtualMouseY = newY;
+            
+            if (distanceToTarget < 60) {
+                targetX = random(0, canvasWidth);
+                targetY = random(0, canvasHeight);
+            }
+            
+            if (random() < 0.0008) {
+                targetX = random(0, canvasWidth);
+                targetY = random(0, canvasHeight);
+            }
+        }
+
+        function updateModeSystem() {
+            let currentTime = millis();
+            
+            if (currentTime - lastModeChange >= modeChangeInterval && !isTransitioning) {
+                isTransitioning = true;
+                transitionStartTime = currentTime;
+                
+                let referenceX = isMobile ? virtualMouseX : mouseX;
+                let referenceY = isMobile ? virtualMouseY : mouseY;
+                
+                if (currentMode === 'attraction') {
+                    currentMode = 'following';
+                    modeChangeInterval = random(7000, 21000);
+                    
+                    for (let concept of conceptBoxes) {
+                        concept.followOffsetX = concept.x - referenceX;
+                        concept.followOffsetY = concept.y - referenceY;
+                        
+                        let distance = sqrt(concept.followOffsetX * concept.followOffsetX + concept.followOffsetY * concept.followOffsetY);
+                        if (distance < 25) {
+                            let angle = atan2(concept.followOffsetY, concept.followOffsetX);
+                            concept.followOffsetX = cos(angle) * 25;
+                            concept.followOffsetY = sin(angle) * 25;
+                        }
+                        
+                        concept.lastFollowOffsetChange = currentTime;
+                        concept.lastFollowIntervalChange = currentTime;
+                    }
+                } else {
+                    currentMode = 'attraction';
+                    modeChangeInterval = random(7000, 37000);
+                    
+                    for (let concept of conceptBoxes) {
+                        concept.offsetX = concept.x - referenceX;
+                        concept.offsetY = concept.y - referenceY;
+                        
+                        concept.lastOffsetChange = currentTime;
+                        concept.lastIntervalChange = currentTime;
+                    }
+                }
+                
+                lastModeChange = currentTime;
+            }
+            
+            if (isTransitioning && currentTime - transitionStartTime >= transitionDuration) {
+                isTransitioning = false;
+            }
+        }
+
+        function updateAttractionMode(concept, referenceX, referenceY, currentTime) {
+            if (currentTime - concept.lastIntervalChange >= concept.intervalChangeTime) {
+                concept.offsetChangeInterval = random(5, 10) * 1000;
+                concept.lastIntervalChange = currentTime;
+                concept.intervalChangeTime = random(1, 10) * 1000;
+            }
+            
+            if (!isTransitioning && currentTime - concept.lastOffsetChange >= concept.offsetChangeInterval) {
+                let marginX = canvasWidth * 0.05;
+                let marginY = canvasHeight * 0.05;
+                
+                let targetX = random(marginX, canvasWidth - marginX);
+                let targetY = random(marginY, canvasHeight - marginY);
+                
+                concept.offsetX = targetX - referenceX;
+                concept.offsetY = targetY - referenceY;
+                
+                concept.x = targetX;
+                concept.y = targetY;
+                
+                concept.lastOffsetChange = currentTime;
+            }
+            
+            let distanceFromReference = dist(concept.x, concept.y, referenceX, referenceY);
+            
+            if (distanceFromReference <= RanDist) {
+                concept.x = lerp(concept.x, referenceX, concept.attractionSpeed);
+                concept.y = lerp(concept.y, referenceY, concept.attractionSpeed);
+            }
+        }
+
+        function updateFollowingMode(concept, referenceX, referenceY, currentTime) {
+            if (currentTime - concept.lastFollowIntervalChange >= concept.followIntervalChangeTime) {
+                concept.followOffsetChangeInterval = random(5, 10) * 1000;
+                concept.lastFollowIntervalChange = currentTime;
+                concept.followIntervalChangeTime = random(1, 5) * 1000;
+            }
+            
+            if (currentTime - concept.lastFollowOffsetChange >= concept.followOffsetChangeInterval) {
+                let newOffsetX, newOffsetY, distance;
+                let attempts = 0;
+                
+                do {
+                    if (random() < 0.7) {
+                        let angle = random(TWO_PI);
+                        let radius = random(30, 150);
+                        newOffsetX = cos(angle) * radius;
+                        newOffsetY = sin(angle) * radius;
+                    } else {
+                        let angle = random(TWO_PI);
+                        let maxRadius = min(
+                            sqrt(referenceX * referenceX + referenceY * referenceY),
+                            sqrt((canvasWidth - referenceX) * (canvasWidth - referenceX) + referenceY * referenceY),
+                            sqrt(referenceX * referenceX + (canvasHeight - referenceY) * (canvasHeight - referenceY)),
+                            sqrt((canvasWidth - referenceX) * (canvasWidth - referenceX) + (canvasHeight - referenceY) * (canvasHeight - referenceY))
+                        );
+                        let radius = random(25, maxRadius);
+                        newOffsetX = cos(angle) * radius;
+                        newOffsetY = sin(angle) * radius;
+                    }
+                    
+                    let targetX = referenceX + newOffsetX;
+                    let targetY = referenceY + newOffsetY;
+                    
+                    if (targetX < 0) newOffsetX = -referenceX + 5;
+                    if (targetX > canvasWidth) newOffsetX = canvasWidth - referenceX - 5;
+                    if (targetY < 0) newOffsetY = -referenceY + 5;
+                    if (targetY > canvasHeight) newOffsetY = canvasHeight - referenceY - 5;
+                    
+                    distance = sqrt(newOffsetX * newOffsetX + newOffsetY * newOffsetY);
+                    attempts++;
+                    
+                    if (attempts > 50) {
+                        let angle = random(TWO_PI);
+                        newOffsetX = cos(angle) * 80;
+                        newOffsetY = sin(angle) * 80;
+                        distance = 80;
+                    }
+                } while (distance < 25 && attempts < 50);
+                
+                concept.followOffsetX = newOffsetX;
+                concept.followOffsetY = newOffsetY;
+                
+                concept.x = referenceX + concept.followOffsetX;
+                concept.y = referenceY + concept.followOffsetY;
+                
+                concept.lastFollowOffsetChange = currentTime;
+            }
+            
+            let targetX = referenceX + concept.followOffsetX;
+            let targetY = referenceY + concept.followOffsetY;
+            
+            let distanceToMouse = dist(targetX, targetY, referenceX, referenceY);
+            
+            if (distanceToMouse < 25) {
+                let angle = atan2(targetY - referenceY, targetX - referenceX);
+                targetX = referenceX + cos(angle) * 25;
+                targetY = referenceY + sin(angle) * 25;
+            }
+            
+            concept.x = lerp(concept.x, targetX, concept.followSpeed);
+            concept.y = lerp(concept.y, targetY, concept.followSpeed);
         }
 
         function drawConceptBox(box, x, y) {
@@ -390,62 +805,408 @@ Sonhos simulam órgãos sensoriais?`
         }
 
         // ===========================================
-        // CONTROLES
+        // FUNÇÕES DO MODO VIDEO
+        // ===========================================
+        function initializeVideo() {
+            if (video && videoLoaded) {
+                video.loop();
+                video.speed(0.9);
+                videoPlaying = true;
+                console.log("Modo VIDEO iniciado");
+                updateDebugInfo("Video: reproduzindo");
+            } else {
+                console.log("Vídeo não carregado!");
+                updateDebugInfo("ERRO: Vídeo não carregado");
+            }
+        }
+
+        // ===========================================
+        // FUNÇÕES DO MODO TEXTOS
+        // ===========================================
+        function initializeTextos() {
+            // Escolher um texto aleatório
+            currentTextIndex = floor(random(shortTexts.length));
+            
+            // Escolher cores aleatórias
+            textBackgroundColor = color(random(255), random(255), random(255));
+            textFontColor = color(random(255), random(255), random(255));
+            
+            // Processar o texto em linhas
+            processTextLines();
+            
+            console.log("Modo TEXTOS iniciado");
+            updateDebugInfo(`Textos: texto ${currentTextIndex + 1}/${shortTexts.length}`);
+        }
+        
+function processTextLines() {
+    let currentText = shortTexts[currentTextIndex];
+    
+    // Processamento especial para manter a estrutura poética
+    textLines = [];
+    let rawLines = currentText.split('\n');
+    
+    for (let line of rawLines) {
+        if (line.trim() === '/') {
+            // Linha vazia (pula linha)
+            textLines.push(' '); // Espaço vazio mantém o espaçamento
+        } else if (line.trim() === '//') {
+            // Dupla linha vazia
+            textLines.push(' ');
+            textLines.push(' ');
+        } else {
+            // Linha normal
+            textLines.push(line.trim());
+        }
+    }
+    
+    calculateTextSize();
+}
+        
+function calculateTextSize() {
+    const MIN_FONT_SIZE = 32; // Aumentei o mínimo
+    const MAX_FONT_SIZE = 200; // Aumentei o máximo
+    const TARGET_OCCUPANCY = 0.85; // 85% do espaço
+    
+    push();
+    textFont('Courier New');
+    
+    // Medir a linha mais larga
+    let maxLineWidth = 0;
+    textSize(100); // Tamanho base para medição relativa
+    for (let line of textLines) {
+        maxLineWidth = max(maxLineWidth, textWidth(line));
+    }
+    
+    // Calcular tamanho base
+    let fontSize = min(
+        (width * 0.7) / (maxLineWidth / 100),
+        (height * 0.7) / (textLines.length * 1.3)
+    );
+    
+    // Ajuste agressivo para ocupar mais espaço
+    fontSize = min(fontSize * 1.15, MAX_FONT_SIZE); // Aumenta em 20%
+    fontSize = max(fontSize, MIN_FONT_SIZE);
+    
+    textSizeCalculated = fontSize;
+    pop();
+    
+    console.log(`Tamanho da fonte calculado: ${textSizeCalculated}px`);
+}
+
+function drawTextos() {
+    // Fundo com cor aleatória (mantendo contraste)
+    background(textBackgroundColor);
+    
+    // Configurações de texto
+    push();
+    fill(textFontColor);
+    noStroke();
+    textFont('Courier New');
+    textSize(textSizeCalculated);
+    textAlign(CENTER, CENTER);
+    
+    // Calcular altura total do bloco de texto
+    const lineHeight = textSizeCalculated * 1.3; // Espaçamento entre linhas
+    const totalTextHeight = textLines.length * lineHeight;
+    
+    // Posição inicial Y (centralizado verticalmente)
+    let yPos = (height - totalTextHeight) / 2 + textSizeCalculated/2;
+    
+    // Desenhar cada linha
+    for (let line of textLines) {
+        text(line, width/2, yPos);
+        yPos += lineHeight;
+    }
+    
+    pop();
+}
+
+        // ===========================================
+        // FUNÇÕES DO SISTEMA DE ÁUDIO
+        // ===========================================
+        function playRandomSound() {
+            if (sounds.length === 0) return;
+            
+            // Para o som atual se estiver tocando
+            if (soundPlaying && currentSoundIndex >= 0) {
+                sounds[currentSoundIndex].stop();
+            }
+            
+            // Seleciona um novo som aleatório (diferente do atual)
+            let newIndex;
+            do {
+                newIndex = floor(random(sounds.length));
+            } while (newIndex === currentSoundIndex && sounds.length > 1);
+            
+            currentSoundIndex = newIndex;
+            sounds[currentSoundIndex].rate(0.95); // Define velocidade
+            sounds[currentSoundIndex].play();
+            sounds[currentSoundIndex].setVolume(audioVolume);
+            soundPlaying = true;
+            
+            // Quando terminar, toca o próximo
+            sounds[currentSoundIndex].onended(() => {
+                soundPlaying = false;
+                playRandomSound(); // Toca o próximo automaticamente
+            });
+        }
+
+        function drawVideo() {
+            if (!video || !videoPlaying || !videoLoaded) return;
+            
+            // Calcular dimensões mantendo proporção 16:9
+            let videoRatio = 16 / 9;
+            let canvasRatio = width / height;
+            
+            let drawWidth, drawHeight;
+            let offsetX = 0, offsetY = 0;
+            
+            if (canvasRatio > videoRatio) {
+                // Canvas mais largo que o vídeo
+                drawHeight = height;
+                drawWidth = drawHeight * videoRatio;
+                offsetX = (width - drawWidth) / 2;
+            } else {
+                // Canvas mais alto que o vídeo
+                drawWidth = width;
+                drawHeight = drawWidth / videoRatio;
+                offsetY = (height - drawHeight) / 2;
+            }
+            
+            image(video, offsetX, offsetY, drawWidth, drawHeight);
+        }
+
+        // ===========================================
+        // ALTERNÂNCIA DE MODOS E CONTROLES
+        // ===========================================
+        function switchMode() {
+            const modes = ['slideshow', 'palavras', 'video', 'textos'];
+            
+            // Selecionar um modo aleatório diferente do atual
+            let newMode;
+            do {
+                newMode = random(modes);
+            } while (modes.length > 1 && newMode === currentAppMode);
+            
+            currentAppMode = newMode;
+            
+            // Inicializar o novo modo
+            switch(currentAppMode) {
+                case 'slideshow':
+                    if (images.length > 0) {
+                        loadNewRandomCrop();
+                        scheduleNextChange();
+                    }
+                    if (videoPlaying) {
+                        video.pause();
+                        videoPlaying = false;
+                    }
+                    updateDebugInfo(`Mudou para SLIDESHOW (${images.length} imagens)`);
+                    break;
+                    
+                case 'palavras':
+                    if (videoPlaying) {
+                        video.pause();
+                        videoPlaying = false;
+                    }
+                    updateDebugInfo(`Mudou para PALAVRAS (${conceptBoxes.length} conceitos)`);
+                    break;
+                    
+                case 'video':
+                    initializeVideo();
+                    break;
+                    
+                case 'textos':
+                    if (videoPlaying) {
+                        video.pause();
+                        videoPlaying = false;
+                    }
+                    initializeTextos();
+                    break;
+            }
+            
+            console.log(`Mudou para modo ${currentAppMode.toUpperCase()}`);
+            updateModeIndicator();
+        }
+        
+        function updateModeIndicator() {
+            const indicator = document.getElementById('modeIndicator');
+            const indicator2 = document.getElementById('modeIndicator2');
+            const indicator3 = document.getElementById('modeIndicator3');
+            indicator2.textContent = '[sonhos] > S / M <';
+            indicator3.textContent = '[sons] > A <';
+            if (currentAppMode === 'slideshow') {
+                indicator.textContent = '[caderno / diagramas] > X <';
+            } else if (currentAppMode === 'palavras') {
+                indicator.textContent = '[palavras] > X <';
+            } else if (currentAppMode === 'video') {
+                indicator.textContent = '[vídeo] > X <';
+            } else {
+                indicator.textContent = '[textos] > X <';
+            }
+        }
+
+        // ===========================================
+        // DRAW PRINCIPAL
+        // ===========================================
+        function draw() {
+            try {
+                if (currentAppMode === 'slideshow') {
+                    // MODO SLIDESHOW
+                    background(0);
+                    
+                    if (millis() > nextChangeTime && images.length > 0) {
+                        loadNewRandomCrop();
+                        scheduleNextChange();
+                    }
+                    
+                    if (currentImage && currentCrop) {
+                        // Verificar se as dimensões são válidas
+                        if (currentCrop.w > 0 && currentCrop.h > 0) {
+                            image(currentImage, 
+                                0, 0, width, height,
+                                currentCrop.x, currentCrop.y, currentCrop.w, currentCrop.h
+                            );
+                        }
+                    }
+                    
+                } else if (currentAppMode === 'palavras') {
+                    // MODO PALAVRAS
+                    background(26, 26, 46);
+                    
+                    let currentTime = millis();
+                    
+                    updateModeSystem();
+                    
+                    if (isMobile) {
+                        updateVirtualMouse();
+                    }
+                    
+                    let referenceX = isMobile ? virtualMouseX : mouseX;
+                    let referenceY = isMobile ? virtualMouseY : mouseY;
+                    
+                    if (currentMode === 'attraction' && currentTime - lastRanDistChange >= ranDistChangeInterval) {
+                        let randx = random();
+                        if (randx < 0.15) {
+                            RanDist = Math.round(random(33, 333));
+                        } else {
+                            RanDist = Math.round(random(33, 88));
+                        }
+                        lastRanDistChange = currentTime;
+                        ranDistChangeInterval = random(1000, 13000);
+                    }
+                    
+                    for (let concept of conceptBoxes) {
+                        if (currentMode === 'attraction') {
+                            updateAttractionMode(concept, referenceX, referenceY, currentTime);
+                        } else {
+                            updateFollowingMode(concept, referenceX, referenceY, currentTime);
+                        }
+                        
+                        drawConceptBox(concept, concept.x, concept.y);
+                    }
+                    
+                    drawConceptBox(centerBox, referenceX, referenceY);
+                    
+                } else if (currentAppMode === 'video') {
+                    // MODO VIDEO
+                    background(0);
+                    drawVideo();
+                    
+                } else if (currentAppMode === 'textos') {
+                    // MODO TEXTOS
+                    drawTextos();
+                }
+            } catch (error) {
+                console.error('Erro no draw:', error);
+                updateDebugInfo(`ERRO: ${error.message}`);
+            }
+        }
+
+        // ===========================================
+        // EVENTOS DE CONTROLE
         // ===========================================
         function keyPressed() {
             if (key === 'x' || key === 'X') {
-                if (currentAppMode === 'palavras') {
-                    currentAppMode = 'textos';
-                    initializeTextos();
+                switchMode();
+            }
+            
+            if (key === 's' || key === 'S') {
+                if (soundPlaying) {
+                    // Se já está tocando, para a reprodução
+                    if (currentSoundIndex >= 0 && sounds[currentSoundIndex]) {
+                        sounds[currentSoundIndex].stop();
+                    }
+                    soundPlaying = false;
                 } else {
-                    currentAppMode = 'palavras';
+                    // Começa a sequência aleatória
+                    playRandomSound();
                 }
-                updateModeIndicator();
-                log(`Modo alterado para: ${currentAppMode}`);
+            }
+
+            if (key === 'm' || key === 'M') {
+                audioVolume = audioVolume === 0 ? 1.1 : 0;
+                if (soundPlaying && currentSoundIndex >= 0 && sounds[currentSoundIndex]) {
+                    sounds[currentSoundIndex].setVolume(audioVolume);
+                }
+            }
+
+            if (key === 'a' || key === 'A') {
+                ambientVolume = ambientVolume === 0 ? 0.25 : 0;
+                if (ambientSound) {
+                    ambientSound.setVolume(ambientVolume);
+                }
             }
         }
-
+        
         function mousePressed() {
             if (currentAppMode === 'palavras') {
-                // Trocar conceito central
-                let randomIndex = Math.floor(random(conceptBoxes.length));
-                let newCenterConcept = conceptBoxes[randomIndex];
-                
-                let returnedConcept = createConceptBox(centerBox.text, canvasWidth * 0.05, canvasHeight * 0.05);
-                returnedConcept.x = mouseX + random(-100, 100);
-                returnedConcept.y = mouseY + random(-100, 100);
-                
-                conceptBoxes[randomIndex] = returnedConcept;
-                centerBox.text = newCenterConcept.text;
-                
-                log(`Conceito central alterado para: ${centerBox.text}`);
+                if (mouseButton === LEFT) {
+                    rotateCenterConcept();
+                    
+                    if (!isMobile) {
+                        for (let concept of conceptBoxes) {
+                            concept.lastOffsetChange = millis();
+                            concept.lastIntervalChange = millis();
+                            concept.lastFollowOffsetChange = millis();
+                            concept.lastFollowIntervalChange = millis();
+                        }
+                    }
+                } else if (mouseButton === RIGHT) {
+                    disperseBoxes();
+                    return false;
+                }
             }
         }
-
-        function updateModeIndicator() {
-            const indicator = document.getElementById('modeIndicator');
-            if (indicator) {
-                indicator.textContent = `[${currentAppMode}] > X <`;
+        
+        function touchStarted() {
+            if (currentAppMode === 'palavras') {
+                rotateCenterConcept();
             }
+            return false;
         }
-
+        
         function windowResized() {
             canvasWidth = windowWidth;
             canvasHeight = windowHeight;
             resizeCanvas(canvasWidth, canvasHeight);
-            log("Canvas redimensionado");
+            
+            if (isMobile) {
+                targetX = constrain(targetX, 0, canvasWidth);
+                targetY = constrain(targetY, 0, canvasHeight);
+            }
+            
+            if (currentAppMode === 'slideshow' && currentImage) {
+                generateRandomCrop();
+            } else if (currentAppMode === 'textos') {
+                calculateTextSize();
+            }
         }
-
-        // ===========================================
-        // INICIALIZAÇÃO
-        // ===========================================
-        window.addEventListener('load', function() {
-            log("Página carregada, iniciando diagnóstico...");
-            testResources();
+        
+        // Prevenir menu de contexto
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
         });
-
-        // Iniciar diagnóstico imediatamente
-        log("Script carregado, aguardando p5.js...");
     </script>
 </body>
 </html>
