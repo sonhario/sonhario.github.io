@@ -67,12 +67,66 @@
             z-index: 1000;
             font-family: 'Courier New', monospace;
         }
+
+        .loading-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-container.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-bar-container {
+            width: 60vw;
+            height: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .loading-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 8px;
+        }
+
+        .loading-details {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            line-height: 1.4;
+            font-family: 'Courier New', monospace;
+        }
+
     </style>
 </head>
 <body>
     <div class="mode-indicator" id="modeIndicator">[caderno / diagramas] > X</div>
     <div class="mode-indicator2" id="modeIndicator2">[sonhos] > S / M </div>
     <div class="mode-indicator3" id="modeIndicator3">[sons] > A </div>
+    <div class="loading-container" id="loadingContainer">
+        <div class="loading-bar-container">
+            <div class="loading-bar-fill" id="loadingBarFill"></div>
+        </div>
+        <div class="loading-details" id="loadingDetails">
+            <span id="loadingStatus">carregando: iniciando...</span>
+        </div>
+    </div>
     <!--
     <div class="debug-info" id="debugInfo">Debug: Carregando...</div>
     -->
@@ -267,10 +321,17 @@ da (extinção da) humanidade?`
         let ambientSound;
         let ambientVolume = 0;
 
+
+
         // Preencher array com nomes dos arquivos (1.wav a 120.wav)
         for (let i = 1; i <= 102; i++) {
             soundFiles.push(`${i}.wav`);
         }
+
+        // Variáveis do sistema de carregamento
+        let totalFilesToLoad = imageFiles.length + soundFiles.length + 2; // +2 para vídeo e som ambiente
+        let filesLoaded = 0;
+        let loadingComplete = false;
 
         // ===========================================
         // FUNÇÕES DE DEBUG
@@ -283,6 +344,31 @@ da (extinção da) humanidade?`
             console.log(`Debug: ${info}`);
         }
 
+function updateLoadingProgress(fileName = '') {
+    const container = document.getElementById('loadingContainer');
+    const fillElement = document.getElementById('loadingBarFill');
+    const statusElement = document.getElementById('loadingStatus');
+    
+    // Só mostra a barrinha se ainda estiver carregando
+    if (filesLoaded < totalFilesToLoad) {
+        if (container) container.classList.remove('hidden');
+        
+        const percentage = (filesLoaded / totalFilesToLoad) * 100;
+        if (fillElement) fillElement.style.width = percentage + '%';
+        
+        if (fileName && statusElement) {
+            statusElement.textContent = `carregando: ${fileName}`;
+        }
+    } else if (!loadingComplete) {
+        // Terminou de carregar
+        loadingComplete = true;
+        if (statusElement) statusElement.textContent = 'carregando: concluído!';
+        setTimeout(() => {
+            if (container) container.classList.add('hidden');
+        }, 500);
+    }
+}
+
         // ===========================================
         // SETUP PRINCIPAL
         // ===========================================
@@ -293,41 +379,64 @@ da (extinção da) humanidade?`
             for (let i = 0; i < imageFiles.length; i++) {
                 loadImage(imageFiles[i], 
                     (img) => {
-                        loadedImages[i] = img; // Mapeia o índice à imagem
+                        loadedImages[i] = img;
                         imagesLoaded++;
+                        filesLoaded++;
                         console.log(`Imagem ${i+1} carregada: ${imageFiles[i]}`);
-                        updateDebugInfo(`Carregando: ${imagesLoaded}/${totalImages} imagens`);
+                        updateLoadingProgress(imageFiles[i]);
                     },
                     () => {
                         console.log(`Erro ao carregar: ${imageFiles[i]}`);
                         imageLoadErrors++;
                         imagesLoaded++;
-                        updateDebugInfo(`Erro ao carregar imagem ${i+1}`);
+                        filesLoaded++;
+                        updateLoadingProgress();
                     }
                 );
             }
             
             // Carregar vídeo para o modo video
+
             video = createVideo(['out.mp4'], () => {
                 console.log('Vídeo carregado');
                 videoLoaded = true;
                 video.volume(0);
                 video.speed(0.9);
                 video.hide();
+                filesLoaded++;
+                updateLoadingProgress('out.mp4');
             });
+
+
 
             // Carregar sons
             for (let i = 0; i < soundFiles.length; i++) {
                 sounds[i] = loadSound(soundFiles[i], 
-                    () => console.log(`Áudio ${i+1} carregado`),
-                    () => console.log(`Erro ao carregar áudio ${i+1}`)
+                    () => {
+                        console.log(`Áudio ${i+1} carregado`);
+                        filesLoaded++;
+                        updateLoadingProgress(soundFiles[i]);
+                    },
+                    () => {
+                        console.log(`Erro ao carregar áudio ${i+1}`);
+                        filesLoaded++;
+                        updateLoadingProgress();
+                    }
                 );
             }
 
             // Carregar som ambiente
             ambientSound = loadSound('som.wav', 
-                () => console.log('Som ambiente carregado'),
-                () => console.log('Erro ao carregar som ambiente')
+                () => {
+                    console.log('Som ambiente carregado');
+                    filesLoaded++;
+                    updateLoadingProgress('som.wav');
+                },
+                () => {
+                    console.log('Erro ao carregar som ambiente');
+                    filesLoaded++;
+                    updateLoadingProgress();
+                }
             );
         }
         
@@ -337,6 +446,11 @@ da (extinção da) humanidade?`
             canvasWidth = windowWidth;
             canvasHeight = windowHeight;
             createCanvas(canvasWidth, canvasHeight);
+
+                if (filesLoaded >= totalFilesToLoad) {
+        const container = document.getElementById('loadingContainer');
+        if (container) container.classList.add('hidden');
+    }
             
             // Criar array de imagens na ordem correta
             images = [];
