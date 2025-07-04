@@ -67,55 +67,101 @@
             z-index: 1000;
             font-family: 'Courier New', monospace;
         }
+
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            font-family: 'Courier New', monospace;
+        }
+
+        .loading-progress {
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            margin-top: 10px;
+            text-align: center;
+            max-width: 80%;
+        }
     </style>
 </head>
 <body>
+    <div class="loading-screen" id="loadingScreen">
+        <h2>Carregando...</h2>
+        <div class="loading-progress" id="loadingProgress">Inicializando...</div>
+        <div class="error-message" id="errorMessage"></div>
+    </div>
+
     <div class="mode-indicator" id="modeIndicator">[caderno / diagramas] > X</div>
     <div class="mode-indicator2" id="modeIndicator2">[sonhos] > S / M </div>
     <div class="mode-indicator3" id="modeIndicator3">[sons] > A </div>
-    <!--
     <div class="debug-info" id="debugInfo">Debug: Carregando...</div>
-    -->
+    
     <script>
+        // ===========================================
+        // SISTEMA DE CARREGAMENTO E DEBUG
+        // ===========================================
+        let loadingComplete = false;
+        let loadingErrors = [];
+
+        function showError(message) {
+            console.error(message);
+            loadingErrors.push(message);
+            updateLoadingScreen();
+        }
+
+        function updateLoadingScreen() {
+            const progressDiv = document.getElementById('loadingProgress');
+            const errorDiv = document.getElementById('errorMessage');
+            
+            if (progressDiv) {
+                if (loadingComplete) {
+                    progressDiv.textContent = 'Carregamento completo! Iniciando...';
+                } else {
+                    progressDiv.textContent = `Carregando: ${imagesLoaded}/${totalImages} imagens, ${soundsLoaded}/${totalSounds} sons`;
+                }
+            }
+            
+            if (errorDiv && loadingErrors.length > 0) {
+                errorDiv.innerHTML = loadingErrors.join('<br>');
+            }
+        }
+
+        function hideLoadingScreen() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (loadingScreen) {
+                loadingScreen.style.display = 'none';
+            }
+        }
+
         // ===========================================
         // SISTEMA DE ALTERNÂNCIA ENTRE MODOS
         // ===========================================
-        let currentAppMode = 'slideshow'; // 'slideshow', 'palavras', 'video' ou 'textos'
+        let currentAppMode = 'palavras'; // Mudei para começar com palavras, que sempre funciona
         
         // ===========================================
         // VARIÁVEIS DO MODO SLIDESHOW
         // ===========================================
         const imageFiles = [
-            '1.jpg',
-            '2.jpg',
-            '3.jpg',
-            '4.jpg',
-            '5.jpg',
-            '6.jpg',
-            '7.jpg',
-            '8.jpg',
-            '9.jpg',
-            '10.jpg',
-            '11.jpg',
-            '12.jpg',
-            '13.jpg',
-            '14.jpg',
-            '15.jpg',
-            '16.jpg',
-            '17.jpg',
-            '18.jpg',
-            '19.jpg',
-            '20.jpg',
-            '21.jpg',
-            '22.jpg',
-            '23.jpg',
-            '24.jpg',
-            '25.jpg',
-            '26.jpg'
+            '1.jpg', '2.jpg', '3.jpg', '4.jpg', '5.jpg', '6.jpg', '7.jpg', '8.jpg', '9.jpg', '10.jpg',
+            '11.jpg', '12.jpg', '13.jpg', '14.jpg', '15.jpg', '16.jpg', '17.jpg', '18.jpg', '19.jpg', '20.jpg',
+            '21.jpg', '22.jpg', '23.jpg', '24.jpg', '25.jpg', '26.jpg'
         ];
         
         let images = [];
-        let loadedImages = {}; // Objeto para mapear índices às imagens carregadas
+        let loadedImages = {};
         let currentImage = null;
         let currentCrop = null;
         let nextChangeTime = 0;
@@ -181,8 +227,8 @@
         // ===========================================
         // VARIÁVEIS DO MODO TEXTOS
         // ===========================================
-const shortTexts = [
-    `espectralismo:
+        const shortTexts = [
+            `espectralismo:
 /
 política de arquivo 
 (memória coletiva / compartilhada)
@@ -199,7 +245,7 @@ vi(st/d)a singulares do passado
 > produzir futuros
 ~ sensorialização dos sinais dos tempos compostos`,
 
-    `sonho = espectro?
+            `sonho = espectro?
 
 sonho pertence ao 
 conjunto dos espectros?
@@ -212,7 +258,7 @@ se intersectam?
 /
 >> - - - - > sonhar é conjurar espectros?`,
 
-    `[ órgão sensoriais não fisiológicos ]
+            `[ órgão sensoriais não fisiológicos ]
 IAs simulam órgãos sensoriais?
 Sonhos simulam órgãos sensoriais?
 /
@@ -227,12 +273,12 @@ Sonho
 memórias / Fauna mental
 moléculas biológicas`,
 
-    `vestígio: passado no presente
+            `vestígio: passado no presente
 catástrofe: passado caindo sobre o presente
 anástrofe: futuro caindo sobre o presente
 presságio: futuro no presente`,
 
-    `sonho é anastrófico
+            `sonho é anastrófico
 sonho é presságio de vestígio(s)
 /
 presságio: futuro no presente
@@ -243,12 +289,12 @@ sonho: passado (memória) montado/editado por futuros?
 sonho como sensorialização 
 dos sinais dos tempos compostos`,
 
-    `o pensamento continua depois 
+            `o pensamento continua depois 
     da (extinção da) humanidade?
 /
 o sonho continua depois 
 da (extinção da) humanidade?`
-];
+        ];
         
         let currentTextIndex = 0;
         let textBackgroundColor;
@@ -266,11 +312,14 @@ da (extinção da) humanidade?`
         let audioVolume = 1.0;
         let ambientSound;
         let ambientVolume = 0;
+        let soundsLoaded = 0;
+        let totalSounds = 0;
 
-        // Preencher array com nomes dos arquivos (1.wav a 120.wav)
+        // Preencher array com nomes dos arquivos (1.wav a 102.wav)
         for (let i = 1; i <= 102; i++) {
             soundFiles.push(`${i}.wav`);
         }
+        totalSounds = soundFiles.length + 1; // +1 para som ambiente
 
         // ===========================================
         // FUNÇÕES DE DEBUG
@@ -284,55 +333,97 @@ da (extinção da) humanidade?`
         }
 
         // ===========================================
-        // SETUP PRINCIPAL
+        // SETUP PRINCIPAL COM CARREGAMENTO ASSÍNCRONO
         // ===========================================
         function preload() {
-            updateDebugInfo('Iniciando preload...');
+            console.log('Iniciando preload...');
+            updateLoadingScreen();
             
-            // Carregar imagens para o modo slideshow
+            // Carregar imagens para o modo slideshow (de forma mais robusta)
+            let imagePromises = [];
             for (let i = 0; i < imageFiles.length; i++) {
-                loadImage(imageFiles[i], 
-                    (img) => {
-                        loadedImages[i] = img; // Mapeia o índice à imagem
-                        imagesLoaded++;
-                        console.log(`Imagem ${i+1} carregada: ${imageFiles[i]}`);
-                        updateDebugInfo(`Carregando: ${imagesLoaded}/${totalImages} imagens`);
+                const imagePromise = new Promise((resolve, reject) => {
+                    loadImage(imageFiles[i], 
+                        (img) => {
+                            loadedImages[i] = img;
+                            imagesLoaded++;
+                            console.log(`Imagem ${i+1} carregada: ${imageFiles[i]}`);
+                            updateLoadingScreen();
+                            resolve();
+                        },
+                        (err) => {
+                            console.warn(`Erro ao carregar: ${imageFiles[i]}`, err);
+                            imageLoadErrors++;
+                            imagesLoaded++;
+                            updateLoadingScreen();
+                            resolve(); // Resolve mesmo com erro para não travar
+                        }
+                    );
+                });
+                imagePromises.push(imagePromise);
+            }
+            
+            // Carregar vídeo (opcional)
+            try {
+                video = createVideo(['out.mp4'], () => {
+                    console.log('Vídeo carregado');
+                    videoLoaded = true;
+                    video.volume(0);
+                    video.speed(0.9);
+                    video.hide();
+                });
+                video.oncanplay = () => {
+                    videoLoaded = true;
+                    console.log('Vídeo pronto para reproduzir');
+                };
+            } catch (err) {
+                console.warn('Erro ao carregar vídeo:', err);
+                showError('Vídeo não disponível');
+            }
+
+            // Carregar sons (opcional)
+            for (let i = 0; i < soundFiles.length; i++) {
+                try {
+                    sounds[i] = loadSound(soundFiles[i], 
+                        () => {
+                            console.log(`Áudio ${i+1} carregado`);
+                            soundsLoaded++;
+                            updateLoadingScreen();
+                        },
+                        () => {
+                            console.warn(`Erro ao carregar áudio ${i+1}`);
+                            soundsLoaded++;
+                            updateLoadingScreen();
+                        }
+                    );
+                } catch (err) {
+                    console.warn(`Erro ao tentar carregar áudio ${i+1}:`, err);
+                    soundsLoaded++;
+                }
+            }
+
+            // Carregar som ambiente (opcional)
+            try {
+                ambientSound = loadSound('som.wav', 
+                    () => {
+                        console.log('Som ambiente carregado');
+                        soundsLoaded++;
+                        updateLoadingScreen();
                     },
                     () => {
-                        console.log(`Erro ao carregar: ${imageFiles[i]}`);
-                        imageLoadErrors++;
-                        imagesLoaded++;
-                        updateDebugInfo(`Erro ao carregar imagem ${i+1}`);
+                        console.warn('Erro ao carregar som ambiente');
+                        soundsLoaded++;
+                        updateLoadingScreen();
                     }
                 );
+            } catch (err) {
+                console.warn('Erro ao tentar carregar som ambiente:', err);
+                soundsLoaded++;
             }
-            
-            // Carregar vídeo para o modo video
-            video = createVideo(['out.mp4'], () => {
-                console.log('Vídeo carregado');
-                videoLoaded = true;
-                video.volume(0);
-                video.speed(0.9);
-                video.hide();
-            });
-
-            // Carregar sons
-            for (let i = 0; i < soundFiles.length; i++) {
-                sounds[i] = loadSound(soundFiles[i], 
-                    () => console.log(`Áudio ${i+1} carregado`),
-                    () => console.log(`Erro ao carregar áudio ${i+1}`)
-                );
-            }
-
-            // Carregar som ambiente
-            ambientSound = loadSound('som.wav', 
-                () => console.log('Som ambiente carregado'),
-                () => console.log('Erro ao carregar som ambiente')
-            );
         }
         
         function setup() {
-            updateDebugInfo('Iniciando setup...');
+            console.log('Iniciando setup...');
             
             canvasWidth = windowWidth;
             canvasHeight = windowHeight;
@@ -360,21 +451,36 @@ da (extinção da) humanidade?`
             targetX = random(0, canvasWidth);
             targetY = random(0, canvasHeight);
             
-            // Inicializar modo slideshow
-            initializeSlideshow();
-            
-            // Inicializar modo palavras
+            // Sempre inicializar modo palavras (garantido funcionar)
             initializePalavras();
+            
+            // Tentar inicializar slideshow se houver imagens
+            if (images.length > 0) {
+                initializeSlideshow();
+            } else {
+                showError('Nenhuma imagem foi carregada - slideshow indisponível');
+            }
             
             updateModeIndicator();
 
-            // Inicializar som ambiente
+            // Inicializar som ambiente se disponível
             if (ambientSound) {
-                ambientSound.loop();
-                ambientSound.setVolume(0);
+                try {
+                    ambientSound.loop();
+                    ambientSound.setVolume(0);
+                } catch (err) {
+                    console.warn('Erro ao inicializar som ambiente:', err);
+                }
             }
             
-            updateDebugInfo('Setup completo');
+            loadingComplete = true;
+            updateLoadingScreen();
+            
+            // Esconder tela de carregamento após um pequeno delay
+            setTimeout(() => {
+                hideLoadingScreen();
+                updateDebugInfo('Setup completo - aplicação rodando');
+            }, 1000);
         }
 
         // ===========================================
@@ -817,6 +923,9 @@ da (extinção da) humanidade?`
             } else {
                 console.log("Vídeo não carregado!");
                 updateDebugInfo("ERRO: Vídeo não carregado");
+                // Fallback para modo palavras se o vídeo não funcionar
+                currentAppMode = 'palavras';
+                updateModeIndicator();
             }
         }
 
@@ -838,98 +947,105 @@ da (extinção da) humanidade?`
             updateDebugInfo(`Textos: texto ${currentTextIndex + 1}/${shortTexts.length}`);
         }
         
-function processTextLines() {
-    let currentText = shortTexts[currentTextIndex];
-    
-    // Processamento especial para manter a estrutura poética
-    textLines = [];
-    let rawLines = currentText.split('\n');
-    
-    for (let line of rawLines) {
-        if (line.trim() === '/') {
-            // Linha vazia (pula linha)
-            textLines.push(' '); // Espaço vazio mantém o espaçamento
-        } else if (line.trim() === '//') {
-            // Dupla linha vazia
-            textLines.push(' ');
-            textLines.push(' ');
-        } else {
-            // Linha normal
-            textLines.push(line.trim());
+        function processTextLines() {
+            let currentText = shortTexts[currentTextIndex];
+            
+            // Processamento especial para manter a estrutura poética
+            textLines = [];
+            let rawLines = currentText.split('\n');
+            
+            for (let line of rawLines) {
+                if (line.trim() === '/') {
+                    // Linha vazia (pula linha)
+                    textLines.push(' '); // Espaço vazio mantém o espaçamento
+                } else if (line.trim() === '//') {
+                    // Dupla linha vazia
+                    textLines.push(' ');
+                    textLines.push(' ');
+                } else {
+                    // Linha normal
+                    textLines.push(line.trim());
+                }
+            }
+            
+            calculateTextSize();
         }
-    }
-    
-    calculateTextSize();
-}
-        
-function calculateTextSize() {
-    const MIN_FONT_SIZE = 32; // Aumentei o mínimo
-    const MAX_FONT_SIZE = 200; // Aumentei o máximo
-    const TARGET_OCCUPANCY = 0.85; // 85% do espaço
-    
-    push();
-    textFont('Courier New');
-    
-    // Medir a linha mais larga
-    let maxLineWidth = 0;
-    textSize(100); // Tamanho base para medição relativa
-    for (let line of textLines) {
-        maxLineWidth = max(maxLineWidth, textWidth(line));
-    }
-    
-    // Calcular tamanho base
-    let fontSize = min(
-        (width * 0.7) / (maxLineWidth / 100),
-        (height * 0.7) / (textLines.length * 1.3)
-    );
-    
-    // Ajuste agressivo para ocupar mais espaço
-    fontSize = min(fontSize * 1.15, MAX_FONT_SIZE); // Aumenta em 20%
-    fontSize = max(fontSize, MIN_FONT_SIZE);
-    
-    textSizeCalculated = fontSize;
-    pop();
-    
-    console.log(`Tamanho da fonte calculado: ${textSizeCalculated}px`);
-}
+                
+        function calculateTextSize() {
+            const MIN_FONT_SIZE = 32;
+            const MAX_FONT_SIZE = 200;
+            const TARGET_OCCUPANCY = 0.85;
+            
+            push();
+            textFont('Courier New');
+            
+            // Medir a linha mais larga
+            let maxLineWidth = 0;
+            textSize(100);
+            for (let line of textLines) {
+                maxLineWidth = max(maxLineWidth, textWidth(line));
+            }
+            
+            // Calcular tamanho base
+            let fontSize = min(
+                (width * 0.7) / (maxLineWidth / 100),
+                (height * 0.7) / (textLines.length * 1.3)
+            );
+            
+            // Ajuste agressivo para ocupar mais espaço
+            fontSize = min(fontSize * 1.15, MAX_FONT_SIZE);
+            fontSize = max(fontSize, MIN_FONT_SIZE);
+            
+            textSizeCalculated = fontSize;
+            pop();
+            
+            console.log(`Tamanho da fonte calculado: ${textSizeCalculated}px`);
+        }
 
-function drawTextos() {
-    // Fundo com cor aleatória (mantendo contraste)
-    background(textBackgroundColor);
-    
-    // Configurações de texto
-    push();
-    fill(textFontColor);
-    noStroke();
-    textFont('Courier New');
-    textSize(textSizeCalculated);
-    textAlign(CENTER, CENTER);
-    
-    // Calcular altura total do bloco de texto
-    const lineHeight = textSizeCalculated * 1.3; // Espaçamento entre linhas
-    const totalTextHeight = textLines.length * lineHeight;
-    
-    // Posição inicial Y (centralizado verticalmente)
-    let yPos = (height - totalTextHeight) / 2 + textSizeCalculated/2;
-    
-    // Desenhar cada linha
-    for (let line of textLines) {
-        text(line, width/2, yPos);
-        yPos += lineHeight;
-    }
-    
-    pop();
-}
+        function drawTextos() {
+            // Fundo com cor aleatória (mantendo contraste)
+            background(textBackgroundColor);
+            
+            // Configurações de texto
+            push();
+            fill(textFontColor);
+            noStroke();
+            textFont('Courier New');
+            textSize(textSizeCalculated);
+            textAlign(CENTER, CENTER);
+            
+            // Calcular altura total do bloco de texto
+            const lineHeight = textSizeCalculated * 1.3;
+            const totalTextHeight = textLines.length * lineHeight;
+            
+            // Posição inicial Y (centralizado verticalmente)
+            let yPos = (height - totalTextHeight) / 2 + textSizeCalculated/2;
+            
+            // Desenhar cada linha
+            for (let line of textLines) {
+                text(line, width/2, yPos);
+                yPos += lineHeight;
+            }
+            
+            pop();
+        }
 
         // ===========================================
         // FUNÇÕES DO SISTEMA DE ÁUDIO
         // ===========================================
         function playRandomSound() {
-            if (sounds.length === 0) return;
+            if (sounds.length === 0) {
+                console.warn('Nenhum som disponível');
+                return;
+            }
             
             // Para o som atual se estiver tocando
-            if (soundPlaying && currentSoundIndex >= 0) {
-                sounds[currentSoundIndex].stop();
+            if (soundPlaying && currentSoundIndex >= 0 && sounds[currentSoundIndex]) {
+                try {
+                    sounds[currentSoundIndex].stop();
+                } catch (err) {
+                    console.warn('Erro ao parar som:', err);
+                }
             }
             
             // Seleciona um novo som aleatório (diferente do atual)
@@ -938,55 +1054,85 @@ function drawTextos() {
                 newIndex = floor(random(sounds.length));
             } while (newIndex === currentSoundIndex && sounds.length > 1);
             
-            currentSoundIndex = newIndex;
-            sounds[currentSoundIndex].rate(0.95); // Define velocidade
-            sounds[currentSoundIndex].play();
-            sounds[currentSoundIndex].setVolume(audioVolume);
-            soundPlaying = true;
+            // Verificar se o som existe
+            if (!sounds[newIndex]) {
+                console.warn(`Som ${newIndex} não existe`);
+                return;
+            }
             
-            // Quando terminar, toca o próximo
-            sounds[currentSoundIndex].onended(() => {
+            try {
+                currentSoundIndex = newIndex;
+                sounds[currentSoundIndex].rate(0.95);
+                sounds[currentSoundIndex].play();
+                sounds[currentSoundIndex].setVolume(audioVolume);
+                soundPlaying = true;
+                
+                // Quando terminar, toca o próximo
+                sounds[currentSoundIndex].onended(() => {
+                    soundPlaying = false;
+                    playRandomSound();
+                });
+            } catch (err) {
+                console.warn('Erro ao reproduzir som:', err);
                 soundPlaying = false;
-                playRandomSound(); // Toca o próximo automaticamente
-            });
+            }
         }
 
         function drawVideo() {
             if (!video || !videoPlaying || !videoLoaded) return;
             
-            // Calcular dimensões mantendo proporção 16:9
-            let videoRatio = 16 / 9;
-            let canvasRatio = width / height;
-            
-            let drawWidth, drawHeight;
-            let offsetX = 0, offsetY = 0;
-            
-            if (canvasRatio > videoRatio) {
-                // Canvas mais largo que o vídeo
-                drawHeight = height;
-                drawWidth = drawHeight * videoRatio;
-                offsetX = (width - drawWidth) / 2;
-            } else {
-                // Canvas mais alto que o vídeo
-                drawWidth = width;
-                drawHeight = drawWidth / videoRatio;
-                offsetY = (height - drawHeight) / 2;
+            try {
+                // Calcular dimensões mantendo proporção 16:9
+                let videoRatio = 16 / 9;
+                let canvasRatio = width / height;
+                
+                let drawWidth, drawHeight;
+                let offsetX = 0, offsetY = 0;
+                
+                if (canvasRatio > videoRatio) {
+                    // Canvas mais largo que o vídeo
+                    drawHeight = height;
+                    drawWidth = drawHeight * videoRatio;
+                    offsetX = (width - drawWidth) / 2;
+                } else {
+                    // Canvas mais alto que o vídeo
+                    drawWidth = width;
+                    drawHeight = drawWidth / videoRatio;
+                    offsetY = (height - drawHeight) / 2;
+                }
+                
+                image(video, offsetX, offsetY, drawWidth, drawHeight);
+            } catch (err) {
+                console.warn('Erro ao desenhar vídeo:', err);
+                // Fallback para outro modo se o vídeo falhar
+                currentAppMode = 'palavras';
+                updateModeIndicator();
             }
-            
-            image(video, offsetX, offsetY, drawWidth, drawHeight);
         }
 
         // ===========================================
         // ALTERNÂNCIA DE MODOS E CONTROLES
         // ===========================================
         function switchMode() {
-            const modes = ['slideshow', 'palavras', 'video', 'textos'];
+            const availableModes = [];
+            
+            // Adicionar modos disponíveis baseado no que foi carregado
+            availableModes.push('palavras'); // Sempre disponível
+            availableModes.push('textos'); // Sempre disponível
+            
+            if (images.length > 0) {
+                availableModes.push('slideshow');
+            }
+            
+            if (videoLoaded) {
+                availableModes.push('video');
+            }
             
             // Selecionar um modo aleatório diferente do atual
             let newMode;
             do {
-                newMode = random(modes);
-            } while (modes.length > 1 && newMode === currentAppMode);
+                newMode = random(availableModes);
+            } while (availableModes.length > 1 && newMode === currentAppMode);
             
             currentAppMode = newMode;
             
@@ -998,16 +1144,24 @@ function drawTextos() {
                         scheduleNextChange();
                     }
                     if (videoPlaying) {
-                        video.pause();
-                        videoPlaying = false;
+                        try {
+                            video.pause();
+                            videoPlaying = false;
+                        } catch (err) {
+                            console.warn('Erro ao pausar vídeo:', err);
+                        }
                     }
                     updateDebugInfo(`Mudou para SLIDESHOW (${images.length} imagens)`);
                     break;
                     
                 case 'palavras':
                     if (videoPlaying) {
-                        video.pause();
-                        videoPlaying = false;
+                        try {
+                            video.pause();
+                            videoPlaying = false;
+                        } catch (err) {
+                            console.warn('Erro ao pausar vídeo:', err);
+                        }
                     }
                     updateDebugInfo(`Mudou para PALAVRAS (${conceptBoxes.length} conceitos)`);
                     break;
@@ -1018,8 +1172,12 @@ function drawTextos() {
                     
                 case 'textos':
                     if (videoPlaying) {
-                        video.pause();
-                        videoPlaying = false;
+                        try {
+                            video.pause();
+                            videoPlaying = false;
+                        } catch (err) {
+                            console.warn('Erro ao pausar vídeo:', err);
+                        }
                     }
                     initializeTextos();
                     break;
@@ -1033,16 +1191,20 @@ function drawTextos() {
             const indicator = document.getElementById('modeIndicator');
             const indicator2 = document.getElementById('modeIndicator2');
             const indicator3 = document.getElementById('modeIndicator3');
-            indicator2.textContent = '[sonhos] > S / M <';
-            indicator3.textContent = '[sons] > A <';
-            if (currentAppMode === 'slideshow') {
-                indicator.textContent = '[caderno / diagramas] > X <';
-            } else if (currentAppMode === 'palavras') {
-                indicator.textContent = '[palavras] > X <';
-            } else if (currentAppMode === 'video') {
-                indicator.textContent = '[vídeo] > X <';
-            } else {
-                indicator.textContent = '[textos] > X <';
+            
+            if (indicator2) indicator2.textContent = '[sonhos] > S / M';
+            if (indicator3) indicator3.textContent = '[sons] > A';
+            
+            if (indicator) {
+                if (currentAppMode === 'slideshow') {
+                    indicator.textContent = '[caderno / diagramas] > X <';
+                } else if (currentAppMode === 'palavras') {
+                    indicator.textContent = '[palavras] > X <';
+                } else if (currentAppMode === 'video') {
+                    indicator.textContent = '[vídeo] > X <';
+                } else {
+                    indicator.textContent = '[textos] > X <';
+                }
             }
         }
 
@@ -1120,6 +1282,9 @@ function drawTextos() {
             } catch (error) {
                 console.error('Erro no draw:', error);
                 updateDebugInfo(`ERRO: ${error.message}`);
+                // Fallback para modo palavras em caso de erro
+                currentAppMode = 'palavras';
+                updateModeIndicator();
             }
         }
 
@@ -1135,9 +1300,13 @@ function drawTextos() {
                 if (soundPlaying) {
                     // Se já está tocando, para a reprodução
                     if (currentSoundIndex >= 0 && sounds[currentSoundIndex]) {
-                        sounds[currentSoundIndex].stop();
+                        try {
+                            sounds[currentSoundIndex].stop();
+                            soundPlaying = false;
+                        } catch (err) {
+                            console.warn('Erro ao parar som:', err);
+                        }
                     }
-                    soundPlaying = false;
                 } else {
                     // Começa a sequência aleatória
                     playRandomSound();
@@ -1147,14 +1316,22 @@ function drawTextos() {
             if (key === 'm' || key === 'M') {
                 audioVolume = audioVolume === 0 ? 1.1 : 0;
                 if (soundPlaying && currentSoundIndex >= 0 && sounds[currentSoundIndex]) {
-                    sounds[currentSoundIndex].setVolume(audioVolume);
+                    try {
+                        sounds[currentSoundIndex].setVolume(audioVolume);
+                    } catch (err) {
+                        console.warn('Erro ao ajustar volume:', err);
+                    }
                 }
             }
 
             if (key === 'a' || key === 'A') {
                 ambientVolume = ambientVolume === 0 ? 0.25 : 0;
                 if (ambientSound) {
-                    ambientSound.setVolume(ambientVolume);
+                    try {
+                        ambientSound.setVolume(ambientVolume);
+                    } catch (err) {
+                        console.warn('Erro ao ajustar volume ambiente:', err);
+                    }
                 }
             }
         }
@@ -1207,6 +1384,33 @@ function drawTextos() {
         document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
         });
+
+        // ===========================================
+        // INICIALIZAÇÃO ADICIONAL PARA COMPATIBILIDADE
+        // ===========================================
+        
+        // Adicionar event listeners para garantir que funcione em diferentes navegadores
+        window.addEventListener('load', function() {
+            console.log('Window loaded - verificando se p5.js está rodando...');
+            setTimeout(() => {
+                if (!loadingComplete) {
+                    console.warn('Carregamento demorou mais que esperado');
+                    showError('Carregamento lento - alguns recursos podem não estar disponíveis');
+                }
+            }, 10000);
+        });
+
+        // Verificação de compatibilidade do navegador
+        function checkBrowserCompatibility() {
+            const isCompatible = !!(window.WebGLRenderingContext || window.WebGL2RenderingContext);
+            if (!isCompatible) {
+                showError('WebGL não suportado - funcionalidade limitada');
+            }
+            return isCompatible;
+        }
+
+        // Chamar verificação
+        checkBrowserCompatibility();
     </script>
 </body>
 </html>
