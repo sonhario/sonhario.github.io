@@ -79,7 +79,18 @@ function validateFileType(file, allowedExtensions, allowedMimeTypes) {
 function validateAudioFile(file) {
   const allowedExt = ['mp3', 'wav', 'm4a'];
   const allowedMime = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/x-m4a'];
-  return validateFileType(file, allowedExt, allowedMime) && validateFileSize(file, 10);
+
+  if (!validateFileType(file, allowedExt, allowedMime)) {
+    showMessage('Formato de áudio inválido. Use MP3, WAV ou M4A.', 'error');
+    return false;
+  }
+
+  if (!validateFileSize(file, 10)) {
+    showMessage('Arquivo de áudio muito grande. Máximo: 10MB.', 'error');
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -90,7 +101,18 @@ function validateAudioFile(file) {
 function validateImageFile(file) {
   const allowedExt = ['jpg', 'jpeg', 'png', 'webp'];
   const allowedMime = ['image/jpeg', 'image/png', 'image/webp'];
-  return validateFileType(file, allowedExt, allowedMime) && validateFileSize(file, 5);
+
+  if (!validateFileType(file, allowedExt, allowedMime)) {
+    showMessage('Formato de imagem inválido. Use JPG, PNG ou WEBP.', 'error');
+    return false;
+  }
+
+  if (!validateFileSize(file, 5)) {
+    showMessage('Arquivo de imagem muito grande. Máximo: 5MB.', 'error');
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -101,7 +123,18 @@ function validateImageFile(file) {
 function validateVideoFile(file) {
   const allowedExt = ['mp4', 'webm', 'mov'];
   const allowedMime = ['video/mp4', 'video/webm', 'video/quicktime'];
-  return validateFileType(file, allowedExt, allowedMime) && validateFileSize(file, 50);
+
+  if (!validateFileType(file, allowedExt, allowedMime)) {
+    showMessage('Formato de vídeo inválido. Use MP4, WEBM ou MOV.', 'error');
+    return false;
+  }
+
+  if (!validateFileSize(file, 50)) {
+    showMessage('Arquivo de vídeo muito grande. Máximo: 50MB.', 'error');
+    return false;
+  }
+
+  return true;
 }
 
 // ============================================

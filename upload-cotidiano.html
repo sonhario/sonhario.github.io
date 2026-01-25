@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compartilhar Cotidiano - Sonhário Virtual</title>
+    <meta name="description" content="Compartilhe fotos e vídeos do seu cotidiano no Sonhário Virtual">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/upload.css">
+</head>
+<body>
+    <header class="site-header">
+        <h1><a href="index.html">Sonhário Virtual</a></h1>
+        <nav>
+            <a href="index.html">Visualizar Sonhos</a>
+            <a href="upload.html">Compartilhar Sonho</a>
+            <a href="termos.html">Termos</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="intro">
+            <h2>Compartilhe seu Cotidiano</h2>
+            <p>Envie fotos ou vídeos do seu cotidiano. Imagens e vídeos que capturam momentos, lugares, coisas ordinárias que te cercam.</p>
+            <p class="warning-box">⚠️ <strong>Importante:</strong> Não envie fotos ou vídeos com rostos de pessoas. Proteja a privacidade de todos.</p>
+        </section>
+
+        <form class="upload-form" id="dailyForm">
+            <!-- Foto OU Vídeo -->
+            <div class="form-group">
+                <label>Selecione uma mídia *</label>
+                <p class="field-description">Escolha uma foto OU um vídeo (não ambos). Máximo: 5MB para fotos, 50MB para vídeos.</p>
+
+                <!-- Foto -->
+                <div style="margin-bottom: 20px;">
+                    <label for="imageFile">Foto do cotidiano</label>
+                    <div class="file-upload" id="imageUpload">
+                        <input
+                            type="file"
+                            id="imageFile"
+                            name="imageFile"
+                            accept="image/jpeg,image/png,image/webp"
+                            hidden
+                        >
+                        <label for="imageFile" class="file-upload-label">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg>
+                            <span class="file-upload-text">Escolher foto</span>
+                            <span class="file-name"></span>
+                        </label>
+                        <button type="button" class="remove-file" hidden>Remover</button>
+                    </div>
+                    <div class="image-preview" id="imagePreview" hidden></div>
+                </div>
+
+                <!-- Vídeo -->
+                <div>
+                    <label for="videoFile">Vídeo do cotidiano</label>
+                    <div class="file-upload" id="videoUpload">
+                        <input
+                            type="file"
+                            id="videoFile"
+                            name="videoFile"
+                            accept="video/mp4,video/webm,video/quicktime"
+                            hidden
+                        >
+                        <label for="videoFile" class="file-upload-label">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                            </svg>
+                            <span class="file-upload-text">Escolher vídeo</span>
+                            <span class="file-name"></span>
+                        </label>
+                        <button type="button" class="remove-file" hidden>Remover</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Termos -->
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="termsAccept" name="termsAccept" required>
+                    <span>Confirmo que não há rostos de pessoas e aceito os <a href="termos.html" target="_blank">termos de uso</a> *</span>
+                </label>
+            </div>
+
+            <!-- Submit -->
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Enviar Cotidiano</button>
+                <button type="reset" class="btn-secondary">Limpar Formulário</button>
+            </div>
+        </form>
+
+        <aside class="info-box">
+            <h3>Sobre o Cotidiano</h3>
+            <p>O cotidiano é o sonho que vivemos acordados. Compartilhe fragmentos do seu dia - luz, sombra, texturas, lugares e coisas que te cercam.</p>
+        </aside>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2025 Sonhário Virtual. Um projeto de <a href="https://fitipe.art" target="_blank">fitipe.art</a></p>
+    </footer>
+
+    <div id="loadingOverlay" class="loading-overlay" hidden>
+        <div class="spinner"></div>
+        <p>Enviando cotidiano...</p>
+    </div>
+
+    <div id="messageContainer" class="message-container"></div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/upload-cotidiano.js"></script>
+</body>
+</html>

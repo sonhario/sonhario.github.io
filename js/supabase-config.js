@@ -11,8 +11,8 @@
  * 4. Copie "Project URL" e "anon public" key
  */
 
-const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL'; // Ex: https://xxxxx.supabase.co
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // Ex: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+const SUPABASE_URL = 'https://nxanctcrqdcbbuhlktzb.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_2Buze4PwI8syUz3Odo1v2w_UkB2blSF';
 
 // Inicializar cliente Supabase
 // Certifique-se de incluir o SDK do Supabase no HTML antes deste arquivo:
@@ -97,6 +97,54 @@ async function createDream(dreamData) {
   const { data, error } = await supabaseClient
     .from('dreams')
     .insert([dreamData])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Cria nova prospecção (upload)
+ * @param {object} prospectionData
+ * @returns {Promise<object>}
+ */
+async function createProspection(prospectionData) {
+  const { data, error } = await supabaseClient
+    .from('prospections')
+    .insert([prospectionData])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Cria novo descarrego (upload)
+ * @param {object} purgeData
+ * @returns {Promise<object>}
+ */
+async function createPurge(purgeData) {
+  const { data, error } = await supabaseClient
+    .from('purges')
+    .insert([purgeData])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Cria novo cotidiano (upload)
+ * @param {object} dailyData
+ * @returns {Promise<object>}
+ */
+async function createDaily(dailyData) {
+  const { data, error } = await supabaseClient
+    .from('daily_life')
+    .insert([dailyData])
     .select()
     .single();
 

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compartilhar Descarrego - Sonhário Virtual</title>
+    <meta name="description" content="Compartilhe pesadelos e descarregos no Sonhário Virtual">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/upload.css">
+</head>
+<body>
+    <header class="site-header">
+        <h1><a href="index.html">Sonhário Virtual</a></h1>
+        <nav>
+            <a href="index.html">Visualizar Sonhos</a>
+            <a href="upload.html">Compartilhar Sonho</a>
+            <a href="termos.html">Termos</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="intro">
+            <h2>Compartilhe seu Descarrego</h2>
+            <p>Escreva sobre pesadelos ou coisas ruins do mundo. Descarregue aqui o que pesa em você. Todos os envios são anônimos e passam por moderação antes de serem publicados.</p>
+        </section>
+
+        <form class="upload-form" id="purgeForm">
+            <!-- Texto do Descarrego -->
+            <div class="form-group">
+                <label for="purgeText">Conte seu descarrego *</label>
+                <textarea
+                    id="purgeText"
+                    name="purgeText"
+                    rows="10"
+                    required
+                    placeholder="Descreva aquilo que pesa, pesadelos ou angústias. Deixe sair. Não se preocupe com educação ou filtros - isto é um espaço de descarrego."
+                    maxlength="10000"
+                ></textarea>
+                <small class="char-count">0 / 10000 caracteres</small>
+            </div>
+
+            <!-- Termos -->
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="termsAccept" name="termsAccept" required>
+                    <span>Li e aceito os <a href="termos.html" target="_blank">termos de uso</a> *</span>
+                </label>
+            </div>
+
+            <!-- Submit -->
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Enviar Descarrego</button>
+                <button type="reset" class="btn-secondary">Limpar Formulário</button>
+            </div>
+        </form>
+
+        <aside class="info-box">
+            <h3>Sobre Descarregos</h3>
+            <p>Descarregos são expressões de dor, angústia e medo. Este é um espaço seguro para compartilhar o que incomoda, sem julgamento. Às vezes precisamos descarregar para seguir em frente.</p>
+        </aside>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2025 Sonhário Virtual. Um projeto de <a href="https://fitipe.art" target="_blank">fitipe.art</a></p>
+    </footer>
+
+    <div id="loadingOverlay" class="loading-overlay" hidden>
+        <div class="spinner"></div>
+        <p>Enviando descarrego...</p>
+    </div>
+
+    <div id="messageContainer" class="message-container"></div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/upload-descarrego.js"></script>
+</body>
+</html>
