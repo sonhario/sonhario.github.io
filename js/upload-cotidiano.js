@@ -87,8 +87,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         } catch (error) {
             console.error('Erro ao enviar cotidiano:', error);
+            console.error('Stack trace:', error.stack);
+            console.error('Error message:', error.message);
             showLoading(false);
-            showMessage('Erro ao enviar cotidiano. Tente novamente.', 'error');
+            showMessage(`Erro ao enviar cotidiano: ${error.message}`, 'error');
         }
     });
 
