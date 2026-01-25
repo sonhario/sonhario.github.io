@@ -6,13 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const charCount = document.querySelector('.char-count');
 
     const audioFile = document.getElementById('audioFile');
-    const imageFile = document.getElementById('imageFile');
-    const videoFile = document.getElementById('videoFile');
-
     const audioUpload = document.getElementById('audioUpload');
-    const imageUpload = document.getElementById('imageUpload');
-    const videoUpload = document.getElementById('videoUpload');
-    const imagePreview = document.getElementById('imagePreview');
 
     // Character counter
     dreamText.addEventListener('input', function() {
@@ -26,10 +20,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // File upload handlers
+    // File upload handlers (sonhos só tem áudio)
     setupFileUpload(audioFile, audioUpload, validateAudioFile);
-    setupFileUpload(imageFile, imageUpload, validateImageFile, showImagePreview);
-    setupFileUpload(videoFile, videoUpload, validateVideoFile);
 
     // Form submission
     form.addEventListener('submit', async function(e) {
@@ -54,12 +46,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (audioFile.files[0] && !validateAudioFile(audioFile.files[0])) {
             return;
         }
-        if (imageFile.files[0] && !validateImageFile(imageFile.files[0])) {
-            return;
-        }
-        if (videoFile.files[0] && !validateVideoFile(videoFile.files[0])) {
-            return;
-        }
 
         // Show loading
         showLoading(true);
@@ -67,8 +53,6 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             // Upload files first (if any)
             const audioUrl = audioFile.files[0] ? await uploadFile(audioFile.files[0], 'dream-media', 'audio/') : null;
-            const imageUrl = imageFile.files[0] ? await uploadFile(imageFile.files[0], 'dream-media', 'images/') : null;
-            const videoUrl = videoFile.files[0] ? await uploadFile(videoFile.files[0], 'dream-media', 'videos/') : null;
 
             // Create dream object
             const dreamData = {
