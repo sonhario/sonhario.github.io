@@ -1,5 +1,39 @@
 // admin.js - Admin moderation panel
 
+// Auth check
+let currentUser = null;
+
+async function checkAuth() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+
+    if (!session) {
+        // Not logged in - redirect to login
+        window.location.href = 'admin-login.html';
+        return false;
+    }
+
+    currentUser = session.user;
+
+    // Update UI with user email
+    const userEmailEl = document.getElementById('userEmail');
+    if (userEmailEl) {
+        userEmailEl.textContent = currentUser.email;
+    }
+
+    return true;
+}
+
+// Logout handler
+function setupLogout() {
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            window.location.href = 'admin-login.html';
+        });
+    }
+}
+
 // Tab configuration
 const TAB_CONFIG = {
     dreams: { table: 'dreams', label: 'Sonhos', textField: 'text', hasAudio: true, hasText: true },
@@ -16,6 +50,13 @@ let currentTab = 'dreams';
 const itemsPerPage = 10;
 
 document.addEventListener('DOMContentLoaded', async function() {
+    // Check authentication first
+    const isAuthenticated = await checkAuth();
+    if (!isAuthenticated) return;
+
+    // Setup logout button
+    setupLogout();
+
     // Setup tab buttons
     const tabBtns = document.querySelectorAll('.tab-btn');
     tabBtns.forEach(btn => {
