@@ -27,9 +27,12 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        // Validate form
-        if (!prospectionText.value.trim()) {
-            showMessage('Por favor, conte sua prospecção', 'error');
+        // Validate form - at least text OR audio required
+        const hasText = prospectionText.value.trim();
+        const hasAudio = audioFile.files[0];
+
+        if (!hasText && !hasAudio) {
+            showMessage('Por favor, conte sua prospecção (texto ou áudio)', 'error');
             prospectionText.focus();
             return;
         }
@@ -57,7 +60,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const prospectionData = {
                 text: prospectionText.value.trim(),
                 audio_url: audioUrl,
-                sensitivity: form.sensitivity.value,
                 session_id: getSessionId(),
                 status: 'pending'
             };

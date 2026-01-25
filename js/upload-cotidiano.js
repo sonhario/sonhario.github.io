@@ -2,14 +2,17 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('dailyForm');
+    const audioFile = document.getElementById('audioFile');
     const imageFile = document.getElementById('imageFile');
     const videoFile = document.getElementById('videoFile');
 
+    const audioUpload = document.getElementById('audioUpload');
     const imageUpload = document.getElementById('imageUpload');
     const videoUpload = document.getElementById('videoUpload');
     const imagePreview = document.getElementById('imagePreview');
 
     // File upload handlers
+    setupFileUpload(audioFile, audioUpload, validateAudioFile);
     setupFileUpload(imageFile, imageUpload, validateImageFile, showImagePreview);
     setupFileUpload(videoFile, videoUpload, validateVideoFile);
 
@@ -18,16 +21,12 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
 
         // Validate that at least one file is selected
+        const hasAudio = audioFile.files[0];
         const hasImage = imageFile.files[0];
         const hasVideo = videoFile.files[0];
 
-        if (!hasImage && !hasVideo) {
-            showMessage('Por favor, selecione uma foto ou um vídeo', 'error');
-            return;
-        }
-
-        if (hasImage && hasVideo) {
-            showMessage('Selecione apenas uma foto OU um vídeo, não ambos', 'error');
+        if (!hasAudio && !hasImage && !hasVideo) {
+            showMessage('Por favor, selecione pelo menos um arquivo (áudio, foto ou vídeo)', 'error');
             return;
         }
 
@@ -37,10 +36,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Validate files
+        const audioValid = !hasAudio || validateAudioFile(audioFile.files[0]);
         const imageValid = !hasImage || validateImageFile(imageFile.files[0]);
         const videoValid = !hasVideo || validateVideoFile(videoFile.files[0]);
 
-        if (!imageValid || !videoValid) {
+        if (!audioValid || !imageValid || !videoValid) {
             return; // Error messages shown by validators
         }
 
@@ -48,19 +48,25 @@ document.addEventListener('DOMContentLoaded', function() {
         showLoading(true);
 
         try {
-            // Upload file
+            // Upload files
+            let audioUrl = null;
             let imageUrl = null;
             let videoUrl = null;
 
+            if (hasAudio) {
+                audioUrl = await uploadFile(audioFile.files[0], 'dream-media', 'daily/audio/');
+            }
             if (hasImage) {
                 imageUrl = await uploadFile(imageFile.files[0], 'dream-media', 'daily/images/');
-            } else if (hasVideo) {
+            }
+            if (hasVideo) {
                 videoUrl = await uploadFile(videoFile.files[0], 'dream-media', 'daily/videos/');
             }
 
             // Create daily life object
             const dailyData = {
-                image_url: imageUrl,
+                audio_url: audioUrl,
+                photo_url: imageUrl,
                 video_url: videoUrl,
                 session_id: getSessionId(),
                 status: 'pending'
@@ -180,6 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
      * Clear all file uploads
      */
     function clearFileUploads() {
+        clearFileUpload(audioUpload);
         clearFileUpload(imageUpload);
         clearFileUpload(videoUpload);
         imagePreview.hidden = true;

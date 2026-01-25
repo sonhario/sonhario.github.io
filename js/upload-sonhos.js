@@ -35,9 +35,12 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        // Validate form
-        if (!dreamText.value.trim()) {
-            showMessage('Por favor, conte seu sonho', 'error');
+        // Validate form - at least text OR audio required
+        const hasText = dreamText.value.trim();
+        const hasAudio = audioFile.files[0];
+
+        if (!hasText && !hasAudio) {
+            showMessage('Por favor, conte seu sonho (texto ou áudio)', 'error');
             dreamText.focus();
             return;
         }
@@ -71,9 +74,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const dreamData = {
                 text: dreamText.value.trim(),
                 audio_url: audioUrl,
-                image_url: imageUrl,
-                video_url: videoUrl,
-                sensitivity: form.sensitivity.value,
                 session_id: getSessionId(),
                 status: 'pending'
             };
