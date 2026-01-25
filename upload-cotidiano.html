@@ -12,9 +12,10 @@
     <header class="site-header">
         <h1><a href="index.html">Sonhário Virtual</a></h1>
         <nav>
-            <a href="index.html">Visualizar Sonhos</a>
-            <a href="upload.html">Compartilhar Sonho</a>
-            <a href="termos.html">Termos</a>
+            <a href="index.html">Sonhos</a>
+            <a href="prospeccoes.html">Prospecções</a>
+            <a href="descarregos.html">Descarregos</a>
+            <a href="cotidiano.html">Cotidiano</a>
         </nav>
     </header>
 
@@ -22,18 +23,40 @@
         <section class="intro">
             <h2>Compartilhe seu Cotidiano</h2>
             <p>Envie fotos ou vídeos do seu cotidiano. Imagens e vídeos que capturam momentos, lugares, coisas ordinárias que te cercam.</p>
-            <p class="warning-box">⚠️ <strong>Importante:</strong> Não envie fotos ou vídeos com rostos de pessoas. Proteja a privacidade de todos.</p>
+            <p class="warning-box"><strong>Importante:</strong> Não envie fotos ou vídeos com rostos de pessoas. Proteja a privacidade de todos.</p>
         </section>
 
         <form class="upload-form" id="dailyForm">
-            <!-- Foto OU Vídeo -->
+            <!-- Áudio, Foto e Vídeo -->
             <div class="form-group">
-                <label>Selecione uma mídia *</label>
-                <p class="field-description">Escolha uma foto OU um vídeo (não ambos). Máximo: 5MB para fotos, 50MB para vídeos.</p>
+                <label>Selecione as mídias *</label>
+                <p class="field-description">Áudio, foto e/ou vídeo do seu cotidiano. Máximo: 10MB áudio, 5MB foto, 50MB vídeo.</p>
+
+                <!-- Áudio -->
+                <div style="margin-bottom: 20px;">
+                    <label for="audioFile">Áudio do cotidiano (opcional)</label>
+                    <div class="file-upload" id="audioUpload">
+                        <input
+                            type="file"
+                            id="audioFile"
+                            name="audioFile"
+                            accept="audio/mpeg,audio/wav,audio/mp4,audio/x-m4a"
+                            hidden
+                        >
+                        <label for="audioFile" class="file-upload-label">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 5v14M5 12h14"></path>
+                            </svg>
+                            <span class="file-upload-text">Escolher arquivo de áudio</span>
+                            <span class="file-name"></span>
+                        </label>
+                        <button type="button" class="remove-file" hidden>Remover</button>
+                    </div>
+                </div>
 
                 <!-- Foto -->
                 <div style="margin-bottom: 20px;">
-                    <label for="imageFile">Foto do cotidiano</label>
+                    <label for="imageFile">Foto do cotidiano (opcional)</label>
                     <div class="file-upload" id="imageUpload">
                         <input
                             type="file"
@@ -58,7 +81,7 @@
 
                 <!-- Vídeo -->
                 <div>
-                    <label for="videoFile">Vídeo do cotidiano</label>
+                    <label for="videoFile">Vídeo do cotidiano (opcional)</label>
                     <div class="file-upload" id="videoUpload">
                         <input
                             type="file"
