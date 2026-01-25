@@ -93,12 +93,23 @@ async function getDreamById(dreamId) {
  * @returns {Promise<object>}
  */
 async function createDream(dreamData) {
-  const { data, error } = await supabaseClient
-    .from('dreams')
-    .insert([dreamData]);
+  // Usar fetch direto para evitar header Prefer: return=representation
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/dreams`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(dreamData)
+  });
 
-  if (error) throw error;
-  return data;
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Erro ao criar sonho');
+  }
+
+  return null; // 201 Created não retorna dados
 }
 
 /**
@@ -107,12 +118,23 @@ async function createDream(dreamData) {
  * @returns {Promise<object>}
  */
 async function createProspection(prospectionData) {
-  const { data, error } = await supabaseClient
-    .from('prospections')
-    .insert([prospectionData]);
+  // Usar fetch direto para evitar header Prefer: return=representation
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/prospections`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(prospectionData)
+  });
 
-  if (error) throw error;
-  return data;
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Erro ao criar prospecção');
+  }
+
+  return null; // 201 Created não retorna dados
 }
 
 /**
@@ -121,12 +143,23 @@ async function createProspection(prospectionData) {
  * @returns {Promise<object>}
  */
 async function createPurge(purgeData) {
-  const { data, error } = await supabaseClient
-    .from('purges')
-    .insert([purgeData]);
+  // Usar fetch direto para evitar header Prefer: return=representation
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/purges`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(purgeData)
+  });
 
-  if (error) throw error;
-  return data;
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Erro ao criar descarrego');
+  }
+
+  return null; // 201 Created não retorna dados
 }
 
 /**
@@ -135,12 +168,23 @@ async function createPurge(purgeData) {
  * @returns {Promise<object>}
  */
 async function createDaily(dailyData) {
-  const { data, error } = await supabaseClient
-    .from('daily_life')
-    .insert([dailyData]);
+  // Usar fetch direto para evitar header Prefer: return=representation
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/daily_life`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(dailyData)
+  });
 
-  if (error) throw error;
-  return data;
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Erro ao criar cotidiano');
+  }
+
+  return null; // 201 Created não retorna dados
 }
 
 /**
