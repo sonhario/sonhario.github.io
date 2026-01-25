@@ -12,7 +12,7 @@
  */
 
 const SUPABASE_URL = 'https://nxanctcrqdcbbuhlktzb.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54YW5jdGNycWRjYmJ1aGxrdHpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc4MjQ1NzYsImV4cCI6MjA1MzQwMDU3Nn0.sb_publishable_2Buze4PwI8syUz3Odo1v2w_UkB2blSF';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54YW5jdGNycWRjYmJ1aGxrdHpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNTUxOTEsImV4cCI6MjA4NDkzMTE5MX0.TkeaWGSR0MM0_VLJaOMFchdbkkM_fRPM5Zr53g7R7zk';
 
 // Inicializar cliente Supabase
 // Certifique-se de incluir o SDK do Supabase no HTML antes deste arquivo:
