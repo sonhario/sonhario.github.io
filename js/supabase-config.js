@@ -82,7 +82,6 @@ async function getDreamById(dreamId) {
     .from('dreams')
     .select('*')
     .eq('id', dreamId)
-    .single();
 
   if (error) throw error;
   return data;
@@ -96,9 +95,7 @@ async function getDreamById(dreamId) {
 async function createDream(dreamData) {
   const { data, error } = await supabaseClient
     .from('dreams')
-    .insert([dreamData])
-    .select()
-    .single();
+    .insert([dreamData]);
 
   if (error) throw error;
   return data;
@@ -112,9 +109,7 @@ async function createDream(dreamData) {
 async function createProspection(prospectionData) {
   const { data, error } = await supabaseClient
     .from('prospections')
-    .insert([prospectionData])
-    .select()
-    .single();
+    .insert([prospectionData]);
 
   if (error) throw error;
   return data;
@@ -128,9 +123,7 @@ async function createProspection(prospectionData) {
 async function createPurge(purgeData) {
   const { data, error } = await supabaseClient
     .from('purges')
-    .insert([purgeData])
-    .select()
-    .single();
+    .insert([purgeData]);
 
   if (error) throw error;
   return data;
@@ -144,9 +137,7 @@ async function createPurge(purgeData) {
 async function createDaily(dailyData) {
   const { data, error } = await supabaseClient
     .from('daily_life')
-    .insert([dailyData])
-    .select()
-    .single();
+    .insert([dailyData]);
 
   if (error) throw error;
   return data;
@@ -163,8 +154,6 @@ async function updateDream(dreamId, updates) {
     .from('dreams')
     .update(updates)
     .eq('id', dreamId)
-    .select()
-    .single();
 
   if (error) throw error;
   return data;
