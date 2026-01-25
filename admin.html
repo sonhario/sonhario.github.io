@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moderação - Sonhário Virtual</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <header class="admin-header">
+        <div class="container">
+            <h1>Painel de Moderação</h1>
+            <p>Sonhário Virtual - Gestão de sonhos compartilhados</p>
+
+            <div class="admin-stats">
+                <div class="stat-box">
+                    <span class="stat-number" id="statPending">-</span>
+                    <span class="stat-label">Pendentes</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-number" id="statApproved">-</span>
+                    <span class="stat-label">Aprovados</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-number" id="statRejected">-</span>
+                    <span class="stat-label">Rejeitados</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-number" id="statTotal">-</span>
+                    <span class="stat-label">Total</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <label for="statusFilter">Status:</label>
+                <button type="button" class="filter-btn active" data-status="all">Todos</button>
+                <button type="button" class="filter-btn" data-status="pending">Pendentes</button>
+                <button type="button" class="filter-btn" data-status="approved">Aprovados</button>
+                <button type="button" class="filter-btn" data-status="rejected">Rejeitados</button>
+            </div>
+
+            <div class="filter-group">
+                <label for="sensitivityFilter">Sensibilidade:</label>
+                <select id="sensitivityFilter">
+                    <option value="all">Todas</option>
+                    <option value="general">Geral</option>
+                    <option value="sensitive">Sensível</option>
+                    <option value="private">Privado</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <button type="button" id="refreshBtn" class="btn-secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                    Atualizar
+                </button>
+            </div>
+        </div>
+
+        <!-- Dreams list -->
+        <div id="dreamsList" class="dreams-list">
+            <!-- Dreams will be loaded here -->
+        </div>
+
+        <!-- Empty state -->
+        <div id="emptyState" class="empty-state" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <p>Nenhum sonho encontrado com os filtros selecionados</p>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination" hidden>
+            <button id="prevBtn" disabled>Anterior</button>
+            <span class="page-info">
+                Página <span id="currentPage">1</span> de <span id="totalPages">1</span>
+            </span>
+            <button id="nextBtn">Próxima</button>
+        </div>
+    </main>
+
+    <div id="loadingOverlay" class="loading-overlay" hidden>
+        <div class="spinner"></div>
+        <p>Carregando...</p>
+    </div>
+
+    <div id="messageContainer" class="message-container"></div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

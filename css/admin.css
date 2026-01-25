@@ -1,0 +1,320 @@
+/* admin.css - Admin moderation panel styles */
+
+.admin-header {
+    background-color: var(--color-bg-alt);
+    border-bottom: 1px solid var(--color-border);
+    padding: var(--space-lg) 0;
+    margin-bottom: var(--space-xl);
+}
+
+.admin-header h1 {
+    font-size: 2rem;
+    margin-bottom: var(--space-sm);
+}
+
+.admin-stats {
+    display: flex;
+    gap: var(--space-lg);
+    margin-top: var(--space-md);
+}
+
+.stat-box {
+    background: white;
+    padding: var(--space-md);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--color-border);
+    min-width: 120px;
+}
+
+.stat-box .stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--color-primary);
+    display: block;
+}
+
+.stat-box .stat-label {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin-top: var(--space-xs);
+}
+
+/* Filters */
+.filters {
+    display: flex;
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: center;
+}
+
+.filter-group label {
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.filter-group select,
+.filter-group button {
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    background: white;
+    font-size: 0.875rem;
+}
+
+.filter-group button {
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.filter-group button:hover {
+    background-color: var(--color-bg-alt);
+}
+
+.filter-group button.active {
+    background-color: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+/* Dream list */
+.dreams-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.dream-card {
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-lg);
+    transition: var(--transition-base);
+}
+
+.dream-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dream-card.pending {
+    border-left: 4px solid var(--color-warning);
+}
+
+.dream-card.approved {
+    border-left: 4px solid var(--color-success);
+}
+
+.dream-card.rejected {
+    border-left: 4px solid var(--color-error);
+    opacity: 0.7;
+}
+
+.dream-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: var(--space-md);
+}
+
+.dream-meta {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+.dream-meta span {
+    margin-right: var(--space-md);
+}
+
+.dream-status {
+    display: inline-block;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--border-radius);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.dream-status.pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.dream-status.approved {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.dream-status.rejected {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.dream-text {
+    margin: var(--space-md) 0;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.dream-media {
+    margin: var(--space-md) 0;
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.media-item {
+    max-width: 300px;
+}
+
+.media-item img {
+    max-width: 100%;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--color-border);
+}
+
+.media-item audio,
+.media-item video {
+    max-width: 100%;
+    border-radius: var(--border-radius);
+}
+
+.dream-sensitivity {
+    display: inline-block;
+    padding: var(--space-xs) var(--space-sm);
+    background-color: var(--color-bg-alt);
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+    margin: var(--space-sm) 0;
+}
+
+.dream-actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-border);
+}
+
+.dream-actions button {
+    padding: var(--space-sm) var(--space-lg);
+    border: none;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.btn-approve {
+    background-color: var(--color-success);
+    color: white;
+}
+
+.btn-approve:hover {
+    background-color: #28a745;
+}
+
+.btn-reject {
+    background-color: var(--color-error);
+    color: white;
+}
+
+.btn-reject:hover {
+    background-color: #c82333;
+}
+
+.btn-delete {
+    background-color: var(--color-text-muted);
+    color: white;
+}
+
+.btn-delete:hover {
+    background-color: #6c757d;
+}
+
+.btn-undo {
+    background-color: var(--color-warning);
+    color: #333;
+}
+
+.btn-undo:hover {
+    background-color: #e0a800;
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: var(--space-xl) 0;
+    color: var(--color-text-muted);
+}
+
+.empty-state svg {
+    width: 64px;
+    height: 64px;
+    margin-bottom: var(--space-md);
+    opacity: 0.3;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-xl);
+}
+
+.pagination button {
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--color-border);
+    background: white;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.pagination button:hover:not(:disabled) {
+    background-color: var(--color-bg-alt);
+}
+
+.pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination .page-info {
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-md);
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .admin-stats {
+        flex-direction: column;
+        gap: var(--space-md);
+    }
+
+    .filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .dream-header {
+        flex-direction: column;
+        gap: var(--space-sm);
+    }
+
+    .dream-actions {
+        flex-direction: column;
+    }
+
+    .dream-actions button {
+        width: 100%;
+    }
+}

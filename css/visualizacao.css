@@ -1,0 +1,228 @@
+/* visualizacao.css - Dream visualization page styles */
+
+.hero {
+    text-align: center;
+    padding: var(--space-xl) 0;
+    background-color: var(--color-bg-alt);
+    margin-bottom: var(--space-xl);
+}
+
+.hero h1 {
+    font-size: 2.5rem;
+    margin-bottom: var(--space-md);
+}
+
+.hero p {
+    font-size: 1.125rem;
+    color: var(--color-text-muted);
+    max-width: 600px;
+    margin: 0 auto var(--space-lg);
+}
+
+.hero .cta-buttons {
+    display: flex;
+    gap: var(--space-md);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* Dream viewer */
+.dream-viewer {
+    max-width: 800px;
+    margin: 0 auto var(--space-xl);
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-xl);
+    min-height: 400px;
+}
+
+.dream-content {
+    margin-bottom: var(--space-lg);
+}
+
+.dream-text {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    margin: var(--space-lg) 0;
+}
+
+.dream-media {
+    margin: var(--space-lg) 0;
+}
+
+.dream-media audio,
+.dream-media video {
+    width: 100%;
+    border-radius: var(--border-radius);
+    margin-bottom: var(--space-md);
+}
+
+.dream-media img {
+    max-width: 100%;
+    border-radius: var(--border-radius);
+    display: block;
+    margin: 0 auto;
+}
+
+.dream-actions {
+    display: flex;
+    gap: var(--space-md);
+    justify-content: center;
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--color-border);
+}
+
+.dream-actions button {
+    padding: var(--space-md) var(--space-lg);
+    border: 1px solid var(--color-border);
+    background: white;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: var(--transition-base);
+    font-weight: 500;
+}
+
+.dream-actions button:hover {
+    background-color: var(--color-bg-alt);
+}
+
+.btn-primary {
+    background-color: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+/* Empty state */
+.empty-dream {
+    text-align: center;
+    padding: var(--space-xl) 0;
+    color: var(--color-text-muted);
+}
+
+.empty-dream svg {
+    width: 64px;
+    height: 64px;
+    margin-bottom: var(--space-md);
+    opacity: 0.3;
+}
+
+.empty-dream p {
+    font-size: 1.125rem;
+    margin-bottom: var(--space-lg);
+}
+
+/* Info section */
+.info-section {
+    background-color: var(--color-bg-alt);
+    padding: var(--space-xl) 0;
+    margin-top: var(--space-xl);
+}
+
+.info-section h2 {
+    font-size: 1.75rem;
+    margin-bottom: var(--space-md);
+    text-align: center;
+}
+
+.info-section p {
+    max-width: 700px;
+    margin: 0 auto var(--space-md);
+    line-height: 1.7;
+    color: var(--color-text-muted);
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--space-lg);
+    margin-top: var(--space-xl);
+}
+
+.info-card {
+    background: white;
+    padding: var(--space-lg);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--color-border);
+}
+
+.info-card h3 {
+    font-size: 1.25rem;
+    margin-bottom: var(--space-sm);
+}
+
+.info-card p {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+/* Stats */
+.stats-section {
+    text-align: center;
+    padding: var(--space-xl) 0;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--space-lg);
+    max-width: 600px;
+    margin: var(--space-lg) auto 0;
+}
+
+.stat-item {
+    background: var(--color-bg-alt);
+    padding: var(--space-lg);
+    border-radius: var(--border-radius);
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--color-primary);
+    display: block;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin-top: var(--space-xs);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: 2rem;
+    }
+
+    .hero .cta-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .dream-viewer {
+        padding: var(--space-lg);
+    }
+
+    .dream-text {
+        font-size: 1rem;
+    }
+
+    .dream-actions {
+        flex-direction: column;
+    }
+
+    .dream-actions button {
+        width: 100%;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+}
