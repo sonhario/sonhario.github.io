@@ -73,11 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             // Submit to Supabase
-            const result = await createDaily(dailyData);
-
-            if (result.error) {
-                throw new Error(result.error.message);
-            }
+            await createDaily(dailyData);
 
             // Success!
             showLoading(false);

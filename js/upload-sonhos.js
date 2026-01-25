@@ -63,11 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             // Submit to Supabase
-            const result = await createDream(dreamData);
-
-            if (result.error) {
-                throw new Error(result.error.message);
-            }
+            await createDream(dreamData);
 
             // Success!
             showLoading(false);

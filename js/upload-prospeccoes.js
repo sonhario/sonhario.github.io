@@ -65,11 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             // Submit to Supabase
-            const result = await createProspection(prospectionData);
-
-            if (result.error) {
-                throw new Error(result.error.message);
-            }
+            await createProspection(prospectionData);
 
             // Success!
             showLoading(false);

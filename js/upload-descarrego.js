@@ -45,11 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             // Submit to Supabase
-            const result = await createPurge(purgeData);
-
-            if (result.error) {
-                throw new Error(result.error.message);
-            }
+            await createPurge(purgeData);
 
             // Success!
             showLoading(false);
