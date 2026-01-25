@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Create dream object
             const dreamData = {
-                text: dreamText.value.trim(),
+                text: dreamText.value.trim() || null,
                 audio_url: audioUrl,
                 session_id: getSessionId(),
                 status: 'pending'

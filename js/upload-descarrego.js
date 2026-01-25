@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             // Create purge object
             const purgeData = {
-                text: purgeText.value.trim(),
+                text: purgeText.value.trim() || null,
                 session_id: getSessionId(),
                 status: 'pending'
             };

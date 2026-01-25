@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Create prospection object
             const prospectionData = {
-                text: prospectionText.value.trim(),
+                text: prospectionText.value.trim() || null,
                 audio_url: audioUrl,
                 session_id: getSessionId(),
                 status: 'pending'
