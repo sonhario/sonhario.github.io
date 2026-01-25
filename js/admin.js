@@ -297,12 +297,12 @@ async function handleAction(itemId, action) {
         const table = config.table;
 
         if (action === 'delete') {
-            const { error } = await supabase.from(table).delete().eq('id', itemId);
+            const { error } = await supabaseClient.from(table).delete().eq('id', itemId);
             if (error) throw error;
             showMessage(`${TAB_CONFIG[currentTab].label} deletado`, 'success');
         } else {
             const newStatus = action === 'approve' ? 'approved' : 'rejected';
-            const { error } = await supabase.from(table).update({ status: newStatus }).eq('id', itemId);
+            const { error } = await supabaseClient.from(table).update({ status: newStatus }).eq('id', itemId);
             if (error) throw error;
             const message = action === 'approve' ? `${TAB_CONFIG[currentTab].label} aprovado` : `${TAB_CONFIG[currentTab].label} rejeitado`;
             showMessage(message, 'success');
