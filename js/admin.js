@@ -1,24 +1,54 @@
 // admin.js - Admin moderation panel
 
-let dreams = [];
-let filteredDreams = [];
+// Tab configuration
+const TAB_CONFIG = {
+    dreams: { table: 'dreams', label: 'Sonhos', textField: 'text', hasAudio: true, hasText: true },
+    prospections: { table: 'prospections', label: 'Prospecções', textField: 'text', hasAudio: true, hasText: true },
+    purges: { table: 'purges', label: 'Descarregos', textField: 'text', hasAudio: false, hasText: true },
+    daily_life: { table: 'daily_life', label: 'Cotidiano', textField: 'text', hasAudio: false, hasText: true }
+};
+
+let allContent = {};
+let filteredContent = [];
 let currentFilter = { status: 'all', sensitivity: 'all' };
 let currentPage = 1;
-const dreamsPerPage = 10;
+let currentTab = 'dreams';
+const itemsPerPage = 10;
 
 document.addEventListener('DOMContentLoaded', async function() {
-    // Load dreams on init
-    await loadDreams();
+    // Setup tab buttons
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const newTab = this.dataset.tab;
+            if (newTab !== currentTab) {
+                currentTab = newTab;
+                currentPage = 1;
+                currentFilter.status = 'all';
+                currentFilter.sensitivity = 'all';
+
+                // Update tab button states
+                tabBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                // Update filter buttons
+                document.querySelectorAll('.filter-btn').forEach((b, idx) => {
+                    b.classList.toggle('active', idx === 0);
+                });
+                document.getElementById('sensitivityFilter').value = 'all';
+
+                // Load new content
+                await loadContent();
+            }
+        });
+    });
 
     // Setup filter buttons
     const filterBtns = document.querySelectorAll('.filter-btn');
     filterBtns.forEach(btn => {
         btn.addEventListener('click', function() {
-            // Update active state
             filterBtns.forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-
-            // Apply filter
             currentFilter.status = this.dataset.status;
             currentPage = 1;
             applyFilters();
@@ -33,106 +63,100 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     // Refresh button
-    document.getElementById('refreshBtn').addEventListener('click', loadDreams);
+    document.getElementById('refreshBtn').addEventListener('click', loadContent);
 
     // Pagination
     document.getElementById('prevBtn').addEventListener('click', () => {
         if (currentPage > 1) {
             currentPage--;
-            renderDreams();
+            renderContent();
         }
     });
 
     document.getElementById('nextBtn').addEventListener('click', () => {
-        const totalPages = Math.ceil(filteredDreams.length / dreamsPerPage);
+        const totalPages = Math.ceil(filteredContent.length / itemsPerPage);
         if (currentPage < totalPages) {
             currentPage++;
-            renderDreams();
+            renderContent();
         }
     });
+
+    // Load initial content
+    await loadContent();
 });
 
 /**
- * Load all dreams from Supabase
+ * Load content for current tab
  */
-async function loadDreams() {
+async function loadContent() {
     showLoading(true);
 
     try {
-        // Fetch all dreams (no status filter on DB level)
+        const config = TAB_CONFIG[currentTab];
         const { data, error } = await supabase
-            .from('dreams')
+            .from(config.table)
             .select('*')
             .order('created_at', { ascending: false });
 
         if (error) throw error;
 
-        dreams = data || [];
+        allContent[currentTab] = data || [];
         applyFilters();
         updateStats();
 
     } catch (error) {
-        console.error('Erro ao carregar sonhos:', error);
-        showMessage('Erro ao carregar sonhos', 'error');
+        console.error(`Erro ao carregar ${currentTab}:`, error);
+        showMessage(`Erro ao carregar ${TAB_CONFIG[currentTab].label}`, 'error');
     } finally {
         showLoading(false);
     }
 }
 
 /**
- * Apply current filters to dreams list
+ * Apply current filters to content list
  */
 function applyFilters() {
-    filteredDreams = dreams.filter(dream => {
-        // Status filter
-        if (currentFilter.status !== 'all' && dream.status !== currentFilter.status) {
+    const content = allContent[currentTab] || [];
+    filteredContent = content.filter(item => {
+        if (currentFilter.status !== 'all' && item.status !== currentFilter.status) {
             return false;
         }
-
-        // Sensitivity filter
-        if (currentFilter.sensitivity !== 'all' && dream.sensitivity !== currentFilter.sensitivity) {
+        if (currentFilter.sensitivity !== 'all' && item.sensitivity !== currentFilter.sensitivity) {
             return false;
         }
-
         return true;
     });
 
-    renderDreams();
+    renderContent();
 }
 
 /**
- * Render dreams for current page
+ * Render content for current page
  */
-function renderDreams() {
-    const dreamsList = document.getElementById('dreamsList');
+function renderContent() {
+    const contentList = document.getElementById('contentList');
     const emptyState = document.getElementById('emptyState');
     const pagination = document.getElementById('pagination');
 
-    // Calculate pagination
-    const totalPages = Math.ceil(filteredDreams.length / dreamsPerPage);
-    const startIndex = (currentPage - 1) * dreamsPerPage;
-    const endIndex = startIndex + dreamsPerPage;
-    const pageDreams = filteredDreams.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(filteredContent.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageContent = filteredContent.slice(startIndex, endIndex);
 
-    // Empty state
-    if (pageDreams.length === 0) {
-        dreamsList.innerHTML = '';
+    if (pageContent.length === 0) {
+        contentList.innerHTML = '';
         emptyState.hidden = false;
         pagination.hidden = true;
         return;
     }
 
     emptyState.hidden = true;
+    contentList.innerHTML = pageContent.map(item => renderContentCard(item)).join('');
 
-    // Render dreams
-    dreamsList.innerHTML = pageDreams.map(dream => renderDreamCard(dream)).join('');
-
-    // Attach event listeners
-    pageDreams.forEach(dream => {
-        attachDreamActions(dream.id);
+    pageContent.forEach(item => {
+        attachActions(item.id);
     });
 
-    // Update pagination
     if (totalPages > 1) {
         pagination.hidden = false;
         document.getElementById('currentPage').textContent = currentPage;
@@ -145,41 +169,49 @@ function renderDreams() {
 }
 
 /**
- * Render a single dream card
+ * Render a single content card
  */
-function renderDreamCard(dream) {
-    const date = formatDate(dream.created_at);
-    const statusLabel = getStatusLabel(dream.status);
-    const sensitivityLabel = getSensitivityLabel(dream.sensitivity);
+function renderContentCard(item) {
+    const config = TAB_CONFIG[currentTab];
+    const date = formatDate(item.created_at);
+    const statusLabel = getStatusLabel(item.status);
+    const sensitivityLabel = getSensitivityLabel(item.sensitivity);
+
+    // Text content
+    let textHTML = '';
+    if (config.hasText && item[config.textField]) {
+        textHTML = `<div class="content-text">${escapeHtml(item[config.textField])}</div>`;
+    }
 
     // Media content
     let mediaHTML = '';
-    if (dream.audio_url || dream.image_url || dream.video_url) {
-        mediaHTML = '<div class="dream-media">';
+    const hasMedia = item.audio_url || item.image_url || item.video_url;
+    if (hasMedia) {
+        mediaHTML = '<div class="content-media">';
 
-        if (dream.audio_url) {
+        if (config.hasAudio && item.audio_url) {
             mediaHTML += `
                 <div class="media-item">
                     <audio controls>
-                        <source src="${dream.audio_url}" type="audio/mpeg">
+                        <source src="${item.audio_url}" type="audio/mpeg">
                     </audio>
                 </div>
             `;
         }
 
-        if (dream.image_url) {
+        if (item.image_url) {
             mediaHTML += `
                 <div class="media-item">
-                    <img src="${dream.image_url}" alt="Imagem do sonho">
+                    <img src="${item.image_url}" alt="Imagem">
                 </div>
             `;
         }
 
-        if (dream.video_url) {
+        if (item.video_url) {
             mediaHTML += `
                 <div class="media-item">
                     <video controls>
-                        <source src="${dream.video_url}" type="video/mp4">
+                        <source src="${item.video_url}" type="video/mp4">
                     </video>
                 </div>
             `;
@@ -188,19 +220,19 @@ function renderDreamCard(dream) {
         mediaHTML += '</div>';
     }
 
-    // Action buttons based on status
+    // Action buttons
     let actionsHTML = '';
-    if (dream.status === 'pending') {
+    if (item.status === 'pending') {
         actionsHTML = `
             <button class="btn-approve" data-action="approve">Aprovar</button>
             <button class="btn-reject" data-action="reject">Rejeitar</button>
         `;
-    } else if (dream.status === 'approved') {
+    } else if (item.status === 'approved') {
         actionsHTML = `
             <button class="btn-reject" data-action="reject">Rejeitar</button>
             <button class="btn-delete" data-action="delete">Deletar</button>
         `;
-    } else if (dream.status === 'rejected') {
+    } else if (item.status === 'rejected') {
         actionsHTML = `
             <button class="btn-undo" data-action="approve">Aprovar</button>
             <button class="btn-delete" data-action="delete">Deletar</button>
@@ -208,21 +240,20 @@ function renderDreamCard(dream) {
     }
 
     return `
-        <div class="dream-card ${dream.status}" data-dream-id="${dream.id}">
-            <div class="dream-header">
-                <div class="dream-meta">
+        <div class="content-card ${item.status}" data-item-id="${item.id}">
+            <div class="content-header">
+                <div class="content-meta">
                     <span>📅 ${date}</span>
                     <span>🔒 ${sensitivityLabel}</span>
-                    <span>🆔 ${dream.id.slice(0, 8)}...</span>
+                    <span>🆔 ${item.id.slice(0, 8)}...</span>
                 </div>
-                <span class="dream-status ${dream.status}">${statusLabel}</span>
+                <span class="content-status ${item.status}">${statusLabel}</span>
             </div>
 
-            <div class="dream-text">${escapeHtml(dream.text)}</div>
-
+            ${textHTML}
             ${mediaHTML}
 
-            <div class="dream-actions" data-dream-id="${dream.id}">
+            <div class="content-actions" data-item-id="${item.id}">
                 ${actionsHTML}
             </div>
         </div>
@@ -230,29 +261,29 @@ function renderDreamCard(dream) {
 }
 
 /**
- * Attach event listeners to dream actions
+ * Attach event listeners to content actions
  */
-function attachDreamActions(dreamId) {
-    const actionsContainer = document.querySelector(`.dream-actions[data-dream-id="${dreamId}"]`);
+function attachActions(itemId) {
+    const actionsContainer = document.querySelector(`.content-actions[data-item-id="${itemId}"]`);
     if (!actionsContainer) return;
 
     const buttons = actionsContainer.querySelectorAll('button');
     buttons.forEach(btn => {
         btn.addEventListener('click', async function() {
             const action = this.dataset.action;
-            await handleDreamAction(dreamId, action);
+            await handleAction(itemId, action);
         });
     });
 }
 
 /**
- * Handle dream actions (approve, reject, delete)
+ * Handle content actions (approve, reject, delete)
  */
-async function handleDreamAction(dreamId, action) {
+async function handleAction(itemId, action) {
     const confirmMessages = {
-        approve: 'Aprovar este sonho para publicação?',
-        reject: 'Rejeitar este sonho?',
-        delete: 'ATENÇÃO: Deletar permanentemente este sonho? Esta ação não pode ser desfeita.'
+        approve: `Aprovar este ${TAB_CONFIG[currentTab].label.toLowerCase()} para publicação?`,
+        reject: `Rejeitar este ${TAB_CONFIG[currentTab].label.toLowerCase()}?`,
+        delete: `ATENÇÃO: Deletar permanentemente este ${TAB_CONFIG[currentTab].label.toLowerCase()}? Esta ação não pode ser desfeita.`
     };
 
     if (!confirm(confirmMessages[action])) {
@@ -262,33 +293,22 @@ async function handleDreamAction(dreamId, action) {
     showLoading(true);
 
     try {
+        const config = TAB_CONFIG[currentTab];
+        const table = config.table;
+
         if (action === 'delete') {
-            // Delete dream
-            const { error } = await supabase
-                .from('dreams')
-                .delete()
-                .eq('id', dreamId);
-
+            const { error } = await supabase.from(table).delete().eq('id', itemId);
             if (error) throw error;
-
-            showMessage('Sonho deletado', 'success');
-
+            showMessage(`${TAB_CONFIG[currentTab].label} deletado`, 'success');
         } else {
-            // Update status
             const newStatus = action === 'approve' ? 'approved' : 'rejected';
-            const { error } = await supabase
-                .from('dreams')
-                .update({ status: newStatus })
-                .eq('id', dreamId);
-
+            const { error } = await supabase.from(table).update({ status: newStatus }).eq('id', itemId);
             if (error) throw error;
-
-            const message = action === 'approve' ? 'Sonho aprovado' : 'Sonho rejeitado';
+            const message = action === 'approve' ? `${TAB_CONFIG[currentTab].label} aprovado` : `${TAB_CONFIG[currentTab].label} rejeitado`;
             showMessage(message, 'success');
         }
 
-        // Reload dreams
-        await loadDreams();
+        await loadContent();
 
     } catch (error) {
         console.error('Erro na ação:', error);
@@ -299,17 +319,23 @@ async function handleDreamAction(dreamId, action) {
 }
 
 /**
- * Update statistics
+ * Update statistics for all tables
  */
 function updateStats() {
-    const pending = dreams.filter(d => d.status === 'pending').length;
-    const approved = dreams.filter(d => d.status === 'approved').length;
-    const rejected = dreams.filter(d => d.status === 'rejected').length;
+    let pending = 0, approved = 0, rejected = 0, total = 0;
+
+    Object.keys(TAB_CONFIG).forEach(tab => {
+        const content = allContent[tab] || [];
+        pending += content.filter(d => d.status === 'pending').length;
+        approved += content.filter(d => d.status === 'approved').length;
+        rejected += content.filter(d => d.status === 'rejected').length;
+        total += content.length;
+    });
 
     document.getElementById('statPending').textContent = pending;
     document.getElementById('statApproved').textContent = approved;
     document.getElementById('statRejected').textContent = rejected;
-    document.getElementById('statTotal').textContent = dreams.length;
+    document.getElementById('statTotal').textContent = total;
 }
 
 /**

@@ -36,6 +36,22 @@
     </header>
 
     <main class="container">
+        <!-- Tab Navigation -->
+        <div class="admin-tabs">
+            <button class="tab-btn active" data-tab="dreams" data-table="dreams">
+                <span class="tab-icon">💭</span> Sonhos
+            </button>
+            <button class="tab-btn" data-tab="prospections" data-table="prospections">
+                <span class="tab-icon">🔮</span> Prospecções
+            </button>
+            <button class="tab-btn" data-tab="purges" data-table="purges">
+                <span class="tab-icon">⚡</span> Descarregos
+            </button>
+            <button class="tab-btn" data-tab="daily_life" data-table="daily_life">
+                <span class="tab-icon">☀️</span> Cotidiano
+            </button>
+        </div>
+
         <!-- Filters -->
         <div class="filters">
             <div class="filter-group">
@@ -68,9 +84,9 @@
             </div>
         </div>
 
-        <!-- Dreams list -->
-        <div id="dreamsList" class="dreams-list">
-            <!-- Dreams will be loaded here -->
+        <!-- Content list -->
+        <div id="contentList" class="content-list">
+            <!-- Content will be loaded here -->
         </div>
 
         <!-- Empty state -->
@@ -80,7 +96,7 @@
                 <line x1="12" y1="8" x2="12" y2="12"></line>
                 <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
-            <p>Nenhum sonho encontrado com os filtros selecionados</p>
+            <p id="emptyMessage">Nenhum conteúdo encontrado com os filtros selecionados</p>
         </div>
 
         <!-- Pagination -->
