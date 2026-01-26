@@ -68,7 +68,9 @@ function validateFileType(file, allowedExtensions, allowedMimeTypes) {
   const extension = file.name.split('.').pop().toLowerCase();
   const mimeType = file.type.toLowerCase();
 
-  return allowedExtensions.includes(extension) && allowedMimeTypes.includes(mimeType);
+  // Aceita se extensão OU mime type estiver correto (|| ao invés de &&)
+  // Isso resolve casos onde mime type pode variar (ex: audio/x-wav, audio/wave)
+  return allowedExtensions.includes(extension) || allowedMimeTypes.includes(mimeType);
 }
 
 /**
@@ -78,7 +80,15 @@ function validateFileType(file, allowedExtensions, allowedMimeTypes) {
  */
 function validateAudioFile(file) {
   const allowedExt = ['mp3', 'wav', 'm4a'];
-  const allowedMime = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/x-m4a'];
+  const allowedMime = [
+    'audio/mpeg',           // MP3
+    'audio/wav',            // WAV
+    'audio/x-wav',          // WAV (variante)
+    'audio/wave',           // WAV (variante)
+    'audio/mp4',            // M4A
+    'audio/x-m4a',          // M4A (variante)
+    'audio/mp4a-latm'       // M4A (variante)
+  ];
 
   if (!validateFileType(file, allowedExt, allowedMime)) {
     showMessage('Formato de áudio inválido. Use MP3, WAV ou M4A.', 'error');
