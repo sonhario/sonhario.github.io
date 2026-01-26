@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             // Upload audio if present
-            const audioUrl = audioFile.files[0] ? await uploadFile(audioFile.files[0], 'dream-media', 'audio/') : null;
+            const audioUrl = audioFile.files[0] ? await uploadFile(audioFile.files[0], 'dream-media', 'prospections/audio/') : null;
 
             // Create prospection object
             const prospectionData = {

@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             // Upload files first (if any)
-            const audioUrl = audioFile.files[0] ? await uploadFile(audioFile.files[0], 'dream-media', 'audio/') : null;
+            const audioUrl = audioFile.files[0] ? await uploadFile(audioFile.files[0], 'dream-media', 'dreams/audio/') : null;
 
             // Create dream object
             const dreamData = {
