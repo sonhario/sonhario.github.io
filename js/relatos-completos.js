@@ -1,57 +1,54 @@
 // Relatos Completos - Sonhario
-// Carrega materiais do Supabase e renderiza como feed
+// Carrega materiais do Supabase e renderiza um relato aleatório por clique
 
 const SUPABASE_URL = 'https://nxanctcrqdcbbuhlktzb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54YW5jdGNycWRjYmJ1aGxrdHpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNTUxOTEsImV4cCI6MjA4NDkzMTE5MX0.TkeaWGSR0MM0_VLJaOMFchdbkkM_fRPM5Zr53g7R7zk';
 
-const TIPOS = ['todos', 'sonhos', 'prospeccoes', 'descarregos', 'cotidiano'];
 const TIPO_LABELS = {
     sonhos: 'sonho',
-    prospeccoes: 'prospecao',
-    descarregos: 'descarrego',
-    cotidiano: 'cotidiano'
+    prospeccoes: 'prospecção',
+    descarregos: 'descarrego'
+};
+
+const FILTER_LABELS = {
+    todos: 'todos',
+    sonhos: 'sonhos',
+    prospeccoes: 'prospecções',
+    descarregos: 'descarregos'
 };
 
 let allMaterials = [];
 let currentFilter = 'todos';
-let shuffleMode = false;
-let hasStarted = false;
 
 async function init() {
-    renderFilters();
-    renderShuffleButton();
+    renderControls();
     await loadMaterials();
 }
 
-function renderFilters() {
-    const container = document.getElementById('filters');
-    TIPOS.forEach(tipo => {
-        const btn = document.createElement('button');
-        btn.textContent = tipo === 'todos' ? 'todos' : tipo;
-        btn.className = tipo === 'todos' ? 'active' : '';
-        btn.addEventListener('click', () => {
-            currentFilter = tipo;
-            container.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            shuffleMode = false;
-            hasStarted = true;
-            renderFeed();
-        });
-        container.appendChild(btn);
-    });
-}
+function renderControls() {
+    const row = document.getElementById('control-row');
 
-function renderShuffleButton() {
-    const container = document.getElementById('shuffle-container');
     const btn = document.createElement('button');
-    btn.id = 'shuffle-btn';
-    btn.textContent = 'shuffle';
+    btn.id = 'show-btn';
+    btn.textContent = 'mostrar um relato original e materiais gerados a partir dele em:';
     btn.addEventListener('click', () => {
-        shuffleMode = true;
-        hasStarted = true;
-        renderFeed();
+        showRandomRelato();
     });
-    container.appendChild(btn);
+
+    const select = document.createElement('select');
+    select.id = 'filter-select';
+    ['todos', 'sonhos', 'prospeccoes', 'descarregos'].forEach(val => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = FILTER_LABELS[val];
+        select.appendChild(opt);
+    });
+    select.addEventListener('change', () => {
+        currentFilter = select.value;
+    });
+
+    row.appendChild(btn);
+    row.appendChild(select);
 }
 
 async function loadMaterials() {
@@ -73,21 +70,17 @@ async function loadMaterials() {
 
         if (!response.ok) throw new Error(`${response.status}`);
         allMaterials = await response.json();
-        renderFeed();
+        // Remove cotidiano
+        allMaterials = allMaterials.filter(m => m.tipo !== 'cotidiano');
+        feed.innerHTML = '';
     } catch (error) {
         feed.innerHTML = `<div class="empty-msg">Erro ao carregar: ${error.message}</div>`;
     }
 }
 
-function renderFeed() {
+function showRandomRelato() {
     const feed = document.getElementById('feed');
     const countEl = document.getElementById('count');
-
-    if (!hasStarted) {
-        countEl.textContent = '';
-        feed.innerHTML = '';
-        return;
-    }
 
     const filtered = currentFilter === 'todos'
         ? allMaterials
@@ -99,20 +92,10 @@ function renderFeed() {
         return;
     }
 
-    if (shuffleMode) {
-        const random = filtered[Math.floor(Math.random() * filtered.length)];
-        countEl.textContent = `1 de ${filtered.length}`;
-        feed.innerHTML = '';
-        feed.appendChild(createRelatoCard(random));
-    } else {
-        countEl.textContent = `${filtered.length} relato${filtered.length !== 1 ? 's' : ''}`;
-        feed.innerHTML = '';
-        filtered.forEach(material => {
-            feed.appendChild(createRelatoCard(material));
-        });
-    }
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const random = filtered[Math.floor(Math.random() * filtered.length)];
+    countEl.textContent = `1 de ${filtered.length}`;
+    feed.innerHTML = '';
+    feed.appendChild(createRelatoCard(random));
 }
 
 function createRelatoCard(m) {
@@ -131,7 +114,6 @@ function createRelatoCard(m) {
         texto.className = 'relato-texto';
         texto.textContent = m.descricao;
 
-        // Se texto parece truncado (500 chars), permitir expandir
         if (m.descricao.length >= 490 && m.texto_url) {
             texto.classList.add('truncated');
             card.appendChild(texto);

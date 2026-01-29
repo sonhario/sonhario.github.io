@@ -6,30 +6,43 @@
     <title>Relatos Completos - Sonhario</title>
     <link rel="stylesheet" href="css/global.css">
     <style>
-        .filters {
+        .control-row {
             display: flex;
+            align-items: center;
+            justify-content: center;
             gap: var(--space-sm);
             flex-wrap: wrap;
-            justify-content: center;
             margin-bottom: var(--space-xl);
         }
 
-        .filters button {
+        #show-btn {
             font-size: var(--font-size-sm);
-            padding: var(--space-xs) var(--space-md);
+            padding: var(--space-sm) var(--space-lg);
             border-radius: 20px;
-        }
-
-        .filters button.active {
             background-color: var(--color-text);
-            border-color: var(--color-text);
+            border: 1px solid var(--color-text);
             color: white;
+            cursor: pointer;
         }
 
-        .filters button:not(.active) {
-            background-color: transparent;
-            color: var(--color-text);
+        #show-btn:hover {
+            background-color: var(--color-accent-hover);
+        }
+
+        #filter-select {
+            font-size: var(--font-size-sm);
+            padding: var(--space-sm) var(--space-md);
+            border-radius: 20px;
             border: 1px solid var(--color-border);
+            background: white;
+            color: var(--color-text);
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            padding-right: var(--space-xl);
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
         }
 
         .relato {
@@ -127,24 +140,6 @@
             color: var(--color-text-muted);
         }
 
-        .shuffle-row {
-            text-align: center;
-            margin-bottom: var(--space-md);
-        }
-
-        #shuffle-btn {
-            font-size: var(--font-size-sm);
-            padding: var(--space-sm) var(--space-xl);
-            border-radius: 20px;
-            background-color: var(--color-text);
-            border-color: var(--color-text);
-            color: white;
-        }
-
-        #shuffle-btn:hover {
-            background-color: var(--color-accent-hover);
-        }
-
         .count {
             text-align: center;
             font-size: var(--font-size-sm);
@@ -206,8 +201,7 @@
         <section class="container" style="padding-top: var(--space-xl);">
             <h2 class="text-center mb-lg">Relatos Completos</h2>
 
-            <div class="filters" id="filters"></div>
-            <div class="shuffle-row" id="shuffle-container"></div>
+            <div class="control-row" id="control-row"></div>
             <div class="count" id="count"></div>
             <div id="feed"></div>
         </section>
