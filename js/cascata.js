@@ -1,9 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // CASCATA.JS - Engine Audiovisual de Partitura Finita
-// Sonhario v1.2
+// Sonhario v1.3
 //
 // Gera burst audiovisual de 4-7s com intensificacao progressiva e corte seco.
-// 5 blocos: Data Loader, Score Generator, Preloader, Playback Engine, UI Controller
+// Canais de overlay pulsantes: ciclam por multiplos assets com tempos decrescentes.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -18,8 +18,16 @@ const SCALE_MIN = 0.07;
 const SCALE_MAX = 0.70;
 const MARGIN = 0.07;
 const PRELOAD_TIMEOUT = 15000;
-const ACCEL_INTERVAL = 0.5; // seconds between playbackRate bumps
+const ACCEL_INTERVAL = 0.5;
 const ACCEL_STEP = 0.05;
+
+// Channel timing
+const CH_FIRST_SHOW = 1.0;      // first asset shows for 1s
+const CH_SHOW = 0.5;            // subsequent assets show for 0.5s
+const CH_GAP_MIN = 0.2;         // initial gap range min
+const CH_GAP_MAX = 0.5;         // initial gap range max
+const CH_GAP_DECAY = 0.75;      // gap multiplier each cycle
+const CH_GAP_FLOOR = 0.05;      // minimum gap
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BLOCO 1: DATA LOADER
@@ -79,8 +87,8 @@ function generateScore() {
     const used = new Set();
     const events = [];
 
-    // Select materials
-    const videos = pickRandom(m => m.video_url, 2, used);
+    // Select base video + audios (same as before)
+    const videos = pickRandom(m => m.video_url, 1, used);
     videos.forEach(v => used.add(v.id));
 
     const audios10s = pickRandom(m => m.audio_10s_url, 3, used);
@@ -89,22 +97,13 @@ function generateScore() {
     const spectrals = pickRandom(m => m.audio_espectral_url, 1, used);
     spectrals.forEach(s => used.add(s.id));
 
-    const images = pickRandom(m => m.imagem_url, 2, used);
-    images.forEach(img => used.add(img.id));
-
-    // Video overlay (can reuse pool - pick from materials with video that weren't used as base)
-    const overlayVideos = pickRandom(m => m.video_url && !used.has(m.id), 1, used);
-    overlayVideos.forEach(v => used.add(v.id));
-
-    // Calculate overlay positions for images and video overlay
-    function calcOverlay() {
-        const canvasMax = Math.max(window.innerWidth, window.innerHeight);
-        const targetSize = canvasMax * (SCALE_MIN + Math.random() * (SCALE_MAX - SCALE_MIN));
-        const scale = targetSize / canvasMax; // normalized
-        const mx = window.innerWidth * MARGIN;
-        const my = window.innerHeight * MARGIN;
-        return { scale: targetSize, mx, my, targetSize };
-    }
+    // Collect pools for channels (all available, excluding base video/audios)
+    const imagePool = allMaterials
+        .filter(m => m.imagem_url && !used.has(m.id))
+        .map(m => m.imagem_url);
+    const videoPool = allMaterials
+        .filter(m => m.video_url && !used.has(m.id))
+        .map(m => m.video_url);
 
     // Phase 1: 0-25% — base video + 1 audio 10s
     if (videos[0]) {
@@ -125,16 +124,13 @@ function generateScore() {
         });
     }
 
-    // Phase 2: 25-45% — +1 image + 1 audio 10s
+    // Phase 2: 25-45% — image channel + 1 audio 10s
     const phase2Start = duration * 0.25;
-    if (images[0]) {
-        const ov = calcOverlay();
+    if (imagePool.length > 0) {
         events.push({
-            type: 'image',
+            type: 'image_channel',
             enterAt: phase2Start,
-            url: images[0].imagem_url,
-            overlay: ov,
-            id: images[0].id
+            pool: imagePool
         });
     }
     if (audios10s[1]) {
@@ -147,7 +143,7 @@ function generateScore() {
         });
     }
 
-    // Phase 3: 45-60% — +spectral voice + 1 image
+    // Phase 3: 45-60% — spectral voice + image channel
     const phase3Start = duration * 0.45;
     if (spectrals[0]) {
         events.push({
@@ -158,27 +154,21 @@ function generateScore() {
             id: spectrals[0].id
         });
     }
-    if (images[1]) {
-        const ov = calcOverlay();
+    if (imagePool.length > 0) {
         events.push({
-            type: 'image',
+            type: 'image_channel',
             enterAt: phase3Start,
-            url: images[1].imagem_url,
-            overlay: ov,
-            id: images[1].id
+            pool: imagePool
         });
     }
 
-    // Phase 4: 60-75% — +overlay video + 1 audio 10s
+    // Phase 4: 60-75% — video channel + 1 audio 10s
     const phase4Start = duration * 0.60;
-    if (overlayVideos[0]) {
-        const ov = calcOverlay();
+    if (videoPool.length > 0) {
         events.push({
-            type: 'video_overlay',
+            type: 'video_channel',
             enterAt: phase4Start,
-            url: overlayVideos[0].video_url,
-            overlay: ov,
-            id: overlayVideos[0].id
+            pool: videoPool
         });
     }
     if (audios10s[2]) {
@@ -191,10 +181,9 @@ function generateScore() {
         });
     }
 
-    // Phase 5: 75-100% — acceleration (handled by engine, not event)
     const accelStart = duration * 0.75;
 
-    console.log(`Cascata: partitura ${duration}s, ${events.length} eventos`);
+    console.log(`Cascata: partitura ${duration}s, ${events.length} eventos, img pool ${imagePool.length}, vid pool ${videoPool.length}`);
 
     return { duration, events, accelStart };
 }
@@ -205,70 +194,138 @@ function generateScore() {
 
 function preloadScore(score, onProgress) {
     return new Promise((resolve) => {
-        const elements = [];
-        let loaded = 0;
-        const total = score.events.length;
+        // Count total items to preload
+        let totalItems = 0;
+        let loadedItems = 0;
 
-        function checkDone() {
-            loaded++;
-            if (onProgress) onProgress(loaded, total);
-            if (loaded >= total) resolve(elements);
-        }
+        // Collect unique URLs across all channels + single events
+        const imageUrls = new Set();
+        const videoUrls = new Set();
 
-        score.events.forEach((evt, i) => {
-            let el = null;
-            let timeoutId = null;
-
-            const onReady = () => {
-                if (timeoutId) clearTimeout(timeoutId);
-                evt._element = el;
-                elements.push(evt);
-                checkDone();
-            };
-
-            const onTimeout = () => {
-                console.warn(`Cascata: timeout preload ${evt.type} ${evt.id}`);
-                evt._element = el; // may still work
-                evt._skipped = true;
-                elements.push(evt);
-                checkDone();
-            };
-
-            timeoutId = setTimeout(onTimeout, PRELOAD_TIMEOUT);
-
-            if (evt.type === 'video_base' || evt.type === 'video_overlay') {
-                el = document.createElement('video');
-                el.crossOrigin = 'anonymous';
-                el.muted = true;
-                el.playsInline = true;
-                el.preload = 'auto';
-                if (evt.type === 'video_base') el.loop = true;
-                el.style.display = 'none';
-                el.src = evt.url;
-                document.body.appendChild(el);
-                el.addEventListener('canplaythrough', onReady, { once: true });
-                el.load();
+        score.events.forEach(evt => {
+            if (evt.type === 'video_base') {
+                videoUrls.add(evt.url);
             } else if (evt.type === 'audio_10s' || evt.type === 'audio_spectral') {
-                el = document.createElement('audio');
-                el.crossOrigin = 'anonymous';
-                el.preload = 'auto';
-                el.style.display = 'none';
-                el.src = evt.url;
-                document.body.appendChild(el);
-                el.addEventListener('canplaythrough', onReady, { once: true });
-                el.load();
-            } else if (evt.type === 'image') {
-                el = new Image();
-                el.crossOrigin = 'anonymous';
-                el.onload = onReady;
-                el.onerror = onTimeout;
-                el.src = evt.url;
+                totalItems++;
+            } else if (evt.type === 'image_channel') {
+                evt.pool.forEach(u => imageUrls.add(u));
+            } else if (evt.type === 'video_channel') {
+                // Preload up to 4 videos for the channel
+                evt.pool.slice(0, 4).forEach(u => videoUrls.add(u));
             }
-
-            evt._element = el;
         });
 
-        if (total === 0) resolve(elements);
+        totalItems += imageUrls.size + videoUrls.size;
+
+        // Shared preloaded asset caches
+        const preloadedImages = {};  // url -> Image
+        const preloadedVideos = {};  // url -> HTMLVideoElement
+
+        function itemDone() {
+            loadedItems++;
+            if (onProgress) onProgress(loadedItems, totalItems);
+            if (loadedItems >= totalItems) finalize();
+        }
+
+        function finalize() {
+            // Attach preloaded assets to events
+            score.events.forEach(evt => {
+                if (evt.type === 'image_channel') {
+                    evt._images = evt.pool
+                        .filter(u => preloadedImages[u])
+                        .map(u => preloadedImages[u]);
+                } else if (evt.type === 'video_channel') {
+                    evt._videos = evt.pool
+                        .slice(0, 4)
+                        .filter(u => preloadedVideos[u])
+                        .map(u => preloadedVideos[u]);
+                }
+            });
+            resolve();
+        }
+
+        // Preload images
+        imageUrls.forEach(url => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            const timeout = setTimeout(() => {
+                preloadedImages[url] = img; // may partially work
+                itemDone();
+            }, PRELOAD_TIMEOUT);
+            img.onload = () => {
+                clearTimeout(timeout);
+                preloadedImages[url] = img;
+                itemDone();
+            };
+            img.onerror = () => {
+                clearTimeout(timeout);
+                itemDone();
+            };
+            img.src = url;
+        });
+
+        // Preload videos (base + channel)
+        videoUrls.forEach(url => {
+            const vid = document.createElement('video');
+            vid.crossOrigin = 'anonymous';
+            vid.muted = true;
+            vid.playsInline = true;
+            vid.preload = 'auto';
+            vid.style.display = 'none';
+            vid.src = url;
+            document.body.appendChild(vid);
+
+            const timeout = setTimeout(() => {
+                preloadedVideos[url] = vid;
+                itemDone();
+            }, PRELOAD_TIMEOUT);
+
+            vid.addEventListener('canplaythrough', () => {
+                clearTimeout(timeout);
+                preloadedVideos[url] = vid;
+                itemDone();
+            }, { once: true });
+
+            vid.load();
+        });
+
+        // Attach base video element directly
+        score.events.forEach(evt => {
+            if (evt.type === 'video_base') {
+                // Will be set by the video preload above
+                Object.defineProperty(evt, '_element', {
+                    get: () => preloadedVideos[evt.url],
+                    configurable: true
+                });
+            }
+        });
+
+        // Preload audio elements
+        score.events.forEach(evt => {
+            if (evt.type === 'audio_10s' || evt.type === 'audio_spectral') {
+                const el = document.createElement('audio');
+                el.crossOrigin = 'anonymous';
+                el.preload = 'auto';
+                el.style.display = 'none';
+                el.src = evt.url;
+                document.body.appendChild(el);
+
+                const timeout = setTimeout(() => {
+                    evt._element = el;
+                    itemDone();
+                }, PRELOAD_TIMEOUT);
+
+                el.addEventListener('canplaythrough', () => {
+                    clearTimeout(timeout);
+                    evt._element = el;
+                    itemDone();
+                }, { once: true });
+
+                el.load();
+            }
+        });
+
+        if (totalItems === 0) finalize();
     });
 }
 
@@ -280,18 +337,117 @@ let audioCtx = null;
 let scoreData = null;
 let playbackStart = 0;
 let isPlaying = false;
-let lastAccelTime = 0;
 let currentPlaybackRate = 1.0;
-let gainNodes = []; // track for cleanup
+let gainNodes = [];
+
+function calcOverlayPos(natW, natH) {
+    const canvasMax = Math.max(width, height);
+    const targetSize = canvasMax * (SCALE_MIN + Math.random() * (SCALE_MAX - SCALE_MIN));
+    const imgMax = Math.max(natW, natH);
+    const scale = targetSize / imgMax;
+    const drawW = natW * scale;
+    const drawH = natH * scale;
+    const mx = width * MARGIN;
+    const my = height * MARGIN;
+    const x = mx + Math.random() * Math.max(0, width - 2 * mx - drawW);
+    const y = my + Math.random() * Math.max(0, height - 2 * my - drawH);
+    return { x, y, w: drawW, h: drawH };
+}
+
+function initChannel(evt) {
+    evt._phase = 'show';
+    evt._cycleCount = 0;
+    evt._showDuration = CH_FIRST_SHOW;
+    evt._gapRange = CH_GAP_MIN + Math.random() * (CH_GAP_MAX - CH_GAP_MIN);
+    evt._phaseStart = 0; // relative to channel enterAt
+    evt._currentIdx = 0;
+    evt._overlay = null;
+
+    // Pick first asset and calculate position
+    if (evt.type === 'image_channel' && evt._images && evt._images.length > 0) {
+        evt._currentIdx = Math.floor(Math.random() * evt._images.length);
+        const img = evt._images[evt._currentIdx];
+        evt._overlay = calcOverlayPos(img.naturalWidth, img.naturalHeight);
+    } else if (evt.type === 'video_channel' && evt._videos && evt._videos.length > 0) {
+        evt._currentIdx = Math.floor(Math.random() * evt._videos.length);
+        const vid = evt._videos[evt._currentIdx];
+        // Start all channel videos playing
+        evt._videos.forEach(v => {
+            v.loop = true;
+            const p = v.play();
+            if (p) p.catch(() => {});
+        });
+        if (vid.videoWidth && vid.videoHeight) {
+            evt._overlay = calcOverlayPos(vid.videoWidth, vid.videoHeight);
+        }
+    }
+}
+
+function advanceChannel(evt) {
+    evt._cycleCount++;
+    evt._showDuration = CH_SHOW;
+    evt._gapRange = Math.max(CH_GAP_FLOOR, evt._gapRange * CH_GAP_DECAY);
+
+    // Pick new random asset
+    if (evt.type === 'image_channel' && evt._images && evt._images.length > 0) {
+        evt._currentIdx = Math.floor(Math.random() * evt._images.length);
+        const img = evt._images[evt._currentIdx];
+        evt._overlay = calcOverlayPos(img.naturalWidth, img.naturalHeight);
+    } else if (evt.type === 'video_channel' && evt._videos && evt._videos.length > 0) {
+        evt._currentIdx = Math.floor(Math.random() * evt._videos.length);
+        const vid = evt._videos[evt._currentIdx];
+        if (vid.videoWidth && vid.videoHeight) {
+            evt._overlay = calcOverlayPos(vid.videoWidth, vid.videoHeight);
+        }
+    }
+}
+
+function updateChannel(evt, channelElapsed) {
+    if (!evt._overlay) return;
+
+    const sincePhaseStart = channelElapsed - evt._phaseStart;
+
+    if (evt._phase === 'show') {
+        if (sincePhaseStart >= evt._showDuration) {
+            // Transition to gap
+            evt._phase = 'gap';
+            evt._phaseStart = channelElapsed;
+            evt._currentGap = evt._gapRange * (0.8 + Math.random() * 0.4); // slight variation
+        }
+    } else if (evt._phase === 'gap') {
+        if (sincePhaseStart >= evt._currentGap) {
+            // Advance to next asset
+            advanceChannel(evt);
+            evt._phase = 'show';
+            evt._phaseStart = channelElapsed;
+        }
+    }
+}
+
+function drawChannel(ctx, evt) {
+    if (evt._phase !== 'show' || !evt._overlay) return;
+
+    if (evt.type === 'image_channel') {
+        if (!evt._images || evt._images.length === 0) return;
+        const img = evt._images[evt._currentIdx];
+        if (!img) return;
+        const ov = evt._overlay;
+        ctx.drawImage(img, ov.x, ov.y, ov.w, ov.h);
+    } else if (evt.type === 'video_channel') {
+        if (!evt._videos || evt._videos.length === 0) return;
+        const vid = evt._videos[evt._currentIdx];
+        if (!vid || vid.readyState < 2) return;
+        const ov = evt._overlay;
+        ctx.drawImage(vid, ov.x, ov.y, ov.w, ov.h);
+    }
+}
 
 function startPlayback(score) {
     scoreData = score;
     isPlaying = true;
     currentPlaybackRate = 1.0;
-    lastAccelTime = 0;
     gainNodes = [];
 
-    // Create or resume AudioContext
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
@@ -299,24 +455,18 @@ function startPlayback(score) {
 
     const now = audioCtx.currentTime;
 
-    // Setup audio events via Web Audio API
+    // Setup audio events
     score.events.forEach(evt => {
         if (evt.type === 'audio_10s' || evt.type === 'audio_spectral') {
             const el = evt._element;
             if (!el) return;
-
             try {
-                // Create source only if not already connected
                 if (!evt._source) {
                     const source = audioCtx.createMediaElementSource(el);
                     const gainNode = audioCtx.createGain();
                     gainNode.gain.setValueAtTime(0, now);
-                    // Schedule gain ramp at enterAt
                     gainNode.gain.setValueAtTime(0, now + evt.enterAt);
-                    gainNode.gain.linearRampToValueAtTime(
-                        evt.gain,
-                        now + evt.enterAt + 0.1
-                    );
+                    gainNode.gain.linearRampToValueAtTime(evt.gain, now + evt.enterAt + 0.1);
                     source.connect(gainNode);
                     gainNode.connect(audioCtx.destination);
                     evt._source = source;
@@ -324,19 +474,18 @@ function startPlayback(score) {
                     gainNodes.push(gainNode);
                 }
             } catch (e) {
-                console.warn(`Cascata: audio setup error ${evt.id}`, e.message);
+                console.warn(`Cascata: audio setup error`, e.message);
             }
-
-            // Start playing immediately at gain 0 (avoids buffering delay)
             el.currentTime = 0;
             const p = el.play();
             if (p) p.catch(() => {});
         }
 
-        // Start all videos immediately (muted), draw loop ignores until enterAt
-        if (evt.type === 'video_base' || evt.type === 'video_overlay') {
+        // Start base video immediately
+        if (evt.type === 'video_base') {
             const el = evt._element;
             if (!el) return;
+            el.loop = true;
             el.currentTime = 0;
             const p = el.play();
             if (p) p.catch(() => {});
@@ -352,26 +501,25 @@ function updatePlayback() {
 
     const elapsed = (performance.now() - playbackStart) / 1000;
 
-    // Hard cut at end
     if (elapsed >= scoreData.duration) {
         hardCut();
         return;
     }
 
-    // Draw layers
     const ctx = drawingContext;
     background(0);
 
     scoreData.events.forEach(evt => {
         if (elapsed < evt.enterAt) return;
-        if (!evt._element) return;
 
         if (evt.type === 'video_base') {
-            drawVideoFit(ctx, evt._element);
-        } else if (evt.type === 'video_overlay') {
-            drawOverlay(ctx, evt._element, evt.overlay);
-        } else if (evt.type === 'image') {
-            drawOverlay(ctx, evt._element, evt.overlay);
+            if (evt._element) drawVideoFit(ctx, evt._element);
+        } else if (evt.type === 'image_channel' || evt.type === 'video_channel') {
+            const channelElapsed = elapsed - evt.enterAt;
+            // Initialize channel on first frame
+            if (evt._phase === undefined) initChannel(evt);
+            updateChannel(evt, channelElapsed);
+            drawChannel(ctx, evt);
         }
     });
 
@@ -384,11 +532,15 @@ function updatePlayback() {
         if (targetRate !== currentPlaybackRate) {
             currentPlaybackRate = targetRate;
             scoreData.events.forEach(evt => {
-                if (!evt._element) return;
-                if (evt.type === 'video_base' || evt.type === 'video_overlay') {
+                if (evt.type === 'video_base' && evt._element) {
                     try { evt._element.playbackRate = currentPlaybackRate; } catch (e) {}
                 }
-                if (evt.type === 'audio_10s' || evt.type === 'audio_spectral') {
+                if (evt.type === 'video_channel' && evt._videos) {
+                    evt._videos.forEach(v => {
+                        try { v.playbackRate = currentPlaybackRate; } catch (e) {}
+                    });
+                }
+                if ((evt.type === 'audio_10s' || evt.type === 'audio_spectral') && evt._element) {
                     try { evt._element.playbackRate = currentPlaybackRate; } catch (e) {}
                 }
             });
@@ -398,14 +550,12 @@ function updatePlayback() {
 
 function drawVideoFit(ctx, videoEl) {
     if (!videoEl || videoEl.readyState < 2) return;
-
     const vw = videoEl.videoWidth;
     const vh = videoEl.videoHeight;
     if (vw === 0 || vh === 0) return;
 
     const videoAspect = vw / vh;
     const canvasAspect = width / height;
-
     let dw, dh, ox, oy;
 
     if (canvasAspect > videoAspect) {
@@ -415,53 +565,15 @@ function drawVideoFit(ctx, videoEl) {
         dw = width;
         dh = dw / videoAspect;
     }
-
     ox = (width - dw) / 2;
     oy = (height - dh) / 2;
-
     ctx.drawImage(videoEl, ox, oy, dw, dh);
-}
-
-function drawOverlay(ctx, el, overlay) {
-    if (!el) return;
-
-    // For video overlays, check readyState
-    if (el.tagName === 'VIDEO' && el.readyState < 2) return;
-
-    const isVideo = el.tagName === 'VIDEO';
-    const natW = isVideo ? el.videoWidth : el.naturalWidth;
-    const natH = isVideo ? el.videoHeight : el.naturalHeight;
-    if (!natW || !natH) return;
-
-    const canvasMax = Math.max(width, height);
-    const targetSize = overlay.targetSize;
-    const imgMax = Math.max(natW, natH);
-    const scale = targetSize / imgMax;
-
-    const drawW = natW * scale;
-    const drawH = natH * scale;
-
-    const mx = width * MARGIN;
-    const my = height * MARGIN;
-    const minX = mx;
-    const maxX = width - mx - drawW;
-    const minY = my;
-    const maxY = height - my - drawH;
-
-    // Use seeded position from overlay (recalculate once, store)
-    if (overlay._x === undefined) {
-        overlay._x = minX + Math.random() * Math.max(0, maxX - minX);
-        overlay._y = minY + Math.random() * Math.max(0, maxY - minY);
-    }
-
-    ctx.drawImage(el, overlay._x, overlay._y, drawW, drawH);
 }
 
 function hardCut() {
     isPlaying = false;
     console.log('Cascata: CORTE SECO');
 
-    // Stop all audio immediately
     if (audioCtx) {
         const now = audioCtx.currentTime;
         gainNodes.forEach(g => {
@@ -472,21 +584,20 @@ function hardCut() {
         });
     }
 
-    // Pause and cleanup all elements
     if (scoreData) {
         scoreData.events.forEach(evt => {
             if (evt._element) {
-                try {
-                    if (evt._element.pause) evt._element.pause();
-                } catch (e) {}
+                try { if (evt._element.pause) evt._element.pause(); } catch (e) {}
+            }
+            if (evt._videos) {
+                evt._videos.forEach(v => {
+                    try { v.pause(); } catch (e) {}
+                });
             }
         });
     }
 
-    // Clear canvas
     background(0);
-
-    // Show button again
     showButton();
 }
 
@@ -504,7 +615,6 @@ function initUI() {
     progressBar = document.getElementById('progress-bar');
     progressFill = document.getElementById('progress-fill');
     progressText = document.getElementById('progress-text');
-
     cascataButton.addEventListener('click', startCascata);
 }
 
@@ -534,9 +644,9 @@ function updateProgress(loaded, total) {
 }
 
 function cleanup() {
-    // Remove previously created DOM elements to avoid createMediaElementSource conflicts
     if (scoreData) {
         scoreData.events.forEach(evt => {
+            // Clean audio elements
             if (evt._element && evt._element.parentNode) {
                 try {
                     if (evt._element.pause) evt._element.pause();
@@ -544,15 +654,32 @@ function cleanup() {
                 } catch (e) {}
                 evt._element.parentNode.removeChild(evt._element);
             }
+            // Clean video channel elements
+            if (evt._videos) {
+                evt._videos.forEach(v => {
+                    try { v.pause(); v.removeAttribute('src'); } catch (e) {}
+                    if (v.parentNode) v.parentNode.removeChild(v);
+                });
+            }
             evt._element = null;
             evt._source = null;
             evt._gainNode = null;
+            evt._images = null;
+            evt._videos = null;
+            evt._phase = undefined;
+            evt._overlay = null;
         });
     }
+
+    // Also clean any leftover hidden video/audio elements from preloading
+    document.querySelectorAll('video[style*="display: none"], audio[style*="display: none"]').forEach(el => {
+        try { el.pause(); el.removeAttribute('src'); } catch (e) {}
+        if (el.parentNode) el.parentNode.removeChild(el);
+    });
+
     scoreData = null;
     gainNodes = [];
 
-    // Close and recreate AudioContext to avoid MediaElementSource reuse issues
     if (audioCtx) {
         try { audioCtx.close(); } catch (e) {}
         audioCtx = null;
@@ -587,7 +714,6 @@ function setup() {
     const container = document.getElementById('p5-container');
     createCanvas(container.clientWidth, container.clientHeight);
     background(0);
-
     initUI();
     loadData();
 }
