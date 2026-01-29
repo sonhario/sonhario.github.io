@@ -14,7 +14,7 @@ const TIPO_LABELS = {
 
 let allMaterials = [];
 let currentFilter = 'todos';
-let shuffleMode = false;
+let shuffleMode = true;
 
 async function init() {
     renderFilters();
