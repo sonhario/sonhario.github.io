@@ -14,7 +14,8 @@ const TIPO_LABELS = {
 
 let allMaterials = [];
 let currentFilter = 'todos';
-let shuffleMode = true;
+let shuffleMode = false;
+let hasStarted = false;
 
 async function init() {
     renderFilters();
@@ -33,6 +34,7 @@ function renderFilters() {
             container.querySelectorAll('button').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             shuffleMode = false;
+            hasStarted = true;
             renderFeed();
         });
         container.appendChild(btn);
@@ -46,6 +48,7 @@ function renderShuffleButton() {
     btn.textContent = 'shuffle';
     btn.addEventListener('click', () => {
         shuffleMode = true;
+        hasStarted = true;
         renderFeed();
     });
     container.appendChild(btn);
@@ -79,6 +82,12 @@ async function loadMaterials() {
 function renderFeed() {
     const feed = document.getElementById('feed');
     const countEl = document.getElementById('count');
+
+    if (!hasStarted) {
+        countEl.textContent = '';
+        feed.innerHTML = '';
+        return;
+    }
 
     const filtered = currentFilter === 'todos'
         ? allMaterials
