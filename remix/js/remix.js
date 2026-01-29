@@ -15,9 +15,7 @@ let currentMaterial = null;
 // Double-buffer: dois vídeos para corte seco sem flash preto
 let frontVideo = null;  // vídeo visível (desenhado por cima)
 let backVideo = null;   // próximo vídeo (pré-carregado, desenhado por baixo)
-let nextAlreadyQueued = false; // evita enfileirar múltiplas vezes
-
-const PRELOAD_AHEAD = 0.5; // segundos antes do fim para iniciar o próximo
+let backVideoReady = false; // back video tem dados suficientes para tocar
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SETUP - Inicializar p5.js e Carregar Dados
@@ -57,7 +55,7 @@ function draw() {
     if (isPlaying) {
         drawVideoElement(backVideo);   // atrás
         drawVideoElement(frontVideo);  // na frente
-        checkPreload();
+        checkVideoSwap();
         checkAudioCrossfade();
         updateImageLayer();
     }
@@ -227,13 +225,13 @@ function startPlayback() {
     }
 
     isPlaying = true;
-    nextAlreadyQueued = false;
+    backVideoReady = false;
     playButton.classList.add('hidden');
 
     console.log('▶️ Iniciando playback...');
 
-    // Camada 1: Vídeos
-    loadVideoInto(frontVideo, getRandomMaterial());
+    // Camada 1: Vídeos - carregar front e pre-carregar back imediatamente
+    loadVideoInto(frontVideo, getRandomMaterial(), true);
 
     // Camada 2+3: Áudio 10s com crossfade + espectral
     startAudioLayer();
@@ -295,73 +293,101 @@ function createHiddenVideo() {
 }
 
 /**
- * Carrega e toca um material em um elemento de vídeo específico
- * Aleatoriza velocidade (0.8-1.2x)
+ * Carrega um material em um elemento de vídeo.
+ * isFront: se true, quando pronto inicia preload do próximo no back.
  */
-function loadVideoInto(videoEl, material) {
+function loadVideoInto(videoEl, material, isFront) {
     if (!material) return;
 
     const videoPath = getMediaPath(material.video_path);
     videoEl._speed = 0.8 + Math.random() * 0.4;
 
-    const slot = videoEl === frontVideo ? 'FRONT' : 'BACK';
+    const slot = isFront ? 'FRONT' : 'BACK';
     console.log(`🎬 ${material.id} → ${slot} (${videoEl._speed.toFixed(2)}x)`);
 
+    // Limpar handlers anteriores (evita acúmulo)
+    videoEl.oncanplaythrough = null;
+    videoEl.onerror = null;
+    videoEl.onended = null;
+
     videoEl.src = videoPath;
+    videoEl.playbackRate = videoEl._speed;
     videoEl.load();
 
-    videoEl.addEventListener('canplay', () => {
-        console.log(`✅ Pronto: ${material.id} (${videoEl.videoWidth}x${videoEl.videoHeight})`);
-    }, { once: true });
+    if (isFront) {
+        // Front: quando pronto, começa a tocar e pre-carrega o back
+        videoEl.oncanplaythrough = () => {
+            videoEl.oncanplaythrough = null;
+            console.log(`✅ Pronto: ${material.id} (${videoEl.videoWidth}x${videoEl.videoHeight})`);
+            preloadNextVideo();
+        };
+    } else {
+        // Back: apenas marca como pronto quando tem dados suficientes
+        videoEl.oncanplaythrough = () => {
+            videoEl.oncanplaythrough = null;
+            backVideoReady = true;
+            console.log(`⏭️ Back pronto: ${material.id}`);
+        };
+    }
 
-    videoEl.addEventListener('error', () => {
+    videoEl.onerror = () => {
         const err = videoEl.error;
-        console.error(`❌ Erro: ${err ? err.message : '?'} (code: ${err ? err.code : '?'})`);
-        if (videoEl === frontVideo) {
-            loadVideoInto(frontVideo, getRandomMaterial());
-        }
-    }, { once: true });
+        console.error(`❌ Erro vídeo: ${err ? err.message : '?'}`);
+        // Tentar outro material
+        loadVideoInto(videoEl, getRandomMaterial(), isFront);
+    };
 
-    videoEl.playbackRate = videoEl._speed;
     const p = videoEl.play();
     if (p) p.catch(e => console.error('❌ Play:', e.message));
 }
 
 /**
- * Verifica se o frontVideo está perto do fim e pré-carrega o próximo no backVideo
- * Tempo restante real = (duration - currentTime) / playbackRate
+ * Pre-carrega o próximo vídeo no backVideo imediatamente
  */
-function checkPreload() {
-    if (!frontVideo || frontVideo.readyState < 2 || nextAlreadyQueued) return;
+function preloadNextVideo() {
+    backVideoReady = false;
+    loadVideoInto(backVideo, getRandomMaterial(), false);
+}
 
-    const remaining = (frontVideo.duration - frontVideo.currentTime) / frontVideo._speed;
+/**
+ * Chamado a cada frame: verifica se front acabou e back está pronto para swap.
+ * Enquanto back não estiver pronto, front mantém seu último frame visível.
+ */
+function checkVideoSwap() {
+    if (!frontVideo || frontVideo.readyState < 2) return;
 
-    if (remaining <= PRELOAD_AHEAD && remaining > 0) {
-        nextAlreadyQueued = true;
-        console.log(`⏭️ Pré-carregando próximo (${remaining.toFixed(2)}s restantes)`);
-        loadVideoInto(backVideo, getRandomMaterial());
-
-        frontVideo.addEventListener('ended', swapVideos, { once: true });
+    // Front acabou?
+    if (frontVideo.ended) {
+        if (backVideoReady && backVideo.readyState >= 3) {
+            doVideoSwap();
+        }
+        // Senão: front mantém último frame visível até back ficar pronto
     }
 }
 
 /**
- * Troca front/back: o back (já tocando) vira front, o antigo front vira back
+ * Executa a troca: back vira front, antigo front é limpo e vira back
  */
-function swapVideos() {
+function doVideoSwap() {
     console.log('🔄 Swap: back → front');
 
-    const temp = frontVideo;
+    const oldFront = frontVideo;
     frontVideo = backVideo;
-    backVideo = temp;
+    backVideo = oldFront;
 
-    // Limpar o antigo front (agora back) para próximo uso
+    // Limpar antigo front (agora back) para reutilização
+    backVideo.oncanplaythrough = null;
+    backVideo.onerror = null;
+    backVideo.onended = null;
     backVideo.pause();
     backVideo.removeAttribute('src');
     backVideo.load();
 
+    backVideoReady = false;
     currentMaterial = null;
-    nextAlreadyQueued = false;
+
+    // Pre-carregar o próximo imediatamente
+    preloadNextVideo();
 }
 
 /**
