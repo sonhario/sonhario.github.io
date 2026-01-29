@@ -289,6 +289,7 @@ function createHiddenVideo() {
     vid.muted = true;
     vid.playsInline = true;
     vid.preload = 'auto';
+    vid.crossOrigin = 'anonymous';
     document.body.appendChild(vid);
     return vid;
 }

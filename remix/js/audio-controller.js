@@ -64,6 +64,7 @@ function initAudio() {
     spectralElement = document.createElement('audio');
     spectralElement.style.display = 'none';
     spectralElement.preload = 'auto';
+    spectralElement.crossOrigin = 'anonymous';
     spectralElement.loop = false;
     document.body.appendChild(spectralElement);
 
@@ -80,6 +81,7 @@ function createAudioSlot(label) {
     const element = document.createElement('audio');
     element.style.display = 'none';
     element.preload = 'auto';
+    element.crossOrigin = 'anonymous';
     document.body.appendChild(element);
 
     const source = audioCtx.createMediaElementSource(element);
