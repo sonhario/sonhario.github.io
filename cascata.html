@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cascata - Sonhario</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+        }
+
+        #p5-container {
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        #p5-container canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Nav overlay */
+        .cascata-nav {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 200;
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+        }
+
+        .cascata-nav a {
+            color: rgba(255, 255, 255, 0.35);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .cascata-nav a:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Button */
+        #cascata-button {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            padding: 16px 32px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            text-transform: uppercase;
+        }
+
+        #cascata-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.8);
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        #cascata-button:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+
+        #cascata-button.hidden {
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        /* Progress bar */
+        #progress-bar {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            width: 240px;
+            text-align: center;
+        }
+
+        #progress-bar.hidden {
+            display: none;
+        }
+
+        #progress-track {
+            width: 100%;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        #progress-fill {
+            height: 100%;
+            width: 0%;
+            background: rgba(255, 255, 255, 0.7);
+            transition: width 0.2s ease;
+        }
+
+        #progress-text {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+            margin-top: 8px;
+            letter-spacing: 1px;
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            #cascata-button {
+                font-size: 16px;
+                padding: 12px 24px;
+            }
+
+            .cascata-nav {
+                top: 12px;
+                right: 12px;
+                gap: 12px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="p5-container"></div>
+
+    <nav class="cascata-nav">
+        <a href="index.html">Sonhario</a>
+        <a href="remix/">Remix</a>
+        <a href="relatos-completos.html">Relatos</a>
+    </nav>
+
+    <button id="cascata-button">
+        <span>gerar cascata</span>
+    </button>
+
+    <div id="progress-bar" class="hidden">
+        <div id="progress-track">
+            <div id="progress-fill"></div>
+        </div>
+        <div id="progress-text">0/0</div>
+    </div>
+
+    <script src="js/cascata.js"></script>
+</body>
+</html>
