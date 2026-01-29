@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - Sonhário Virtual</title>
-    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="../css/global.css">
     <style>
         .login-container {
             max-width: 400px;
@@ -129,11 +129,11 @@
             </button>
         </form>
 
-        <a href="index.html" class="back-link">← Voltar ao início</a>
+        <a href="../" class="back-link">← Voltar ao início</a>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase-config.js"></script>
+    <script src="../js/supabase-config.js"></script>
     <script>
         const form = document.getElementById('loginForm');
         const emailInput = document.getElementById('email');
@@ -151,7 +151,7 @@
             const { data: { session } } = await client.auth.getSession();
             if (session) {
                 // Already logged in, redirect to admin
-                window.location.href = 'admin.html';
+                window.location.href = '../admin/';
             }
         }
 
@@ -175,7 +175,7 @@
                 if (error) throw error;
 
                 // Success - redirect to admin
-                window.location.href = 'admin.html';
+                window.location.href = '../admin/';
 
             } catch (error) {
                 console.error('Login error:', error);
