@@ -145,15 +145,7 @@ function createRelatoCard(m) {
     let hasMedia = false;
 
     if (m.audio_espectral_url) {
-        const label = document.createElement('label');
-        label.textContent = 'voz processada';
-        media.appendChild(label);
-        const audio = document.createElement('audio');
-        audio.src = m.audio_espectral_url;
-        audio.controls = true;
-        audio.preload = 'metadata';
-        audio.crossOrigin = 'anonymous';
-        media.appendChild(audio);
+        media.appendChild(createAudioPlayer(m.audio_espectral_url, 'voz processada'));
         hasMedia = true;
     }
 
@@ -170,15 +162,7 @@ function createRelatoCard(m) {
     }
 
     if (m.audio_10s_url) {
-        const label = document.createElement('label');
-        label.textContent = 'paisagem sonora';
-        media.appendChild(label);
-        const audio = document.createElement('audio');
-        audio.src = m.audio_10s_url;
-        audio.controls = true;
-        audio.preload = 'metadata';
-        audio.crossOrigin = 'anonymous';
-        media.appendChild(audio);
+        media.appendChild(createAudioPlayer(m.audio_10s_url, 'paisagem sonora'));
         hasMedia = true;
     }
 
@@ -188,8 +172,11 @@ function createRelatoCard(m) {
         media.appendChild(label);
         const video = document.createElement('video');
         video.src = m.video_url;
-        video.controls = true;
-        video.preload = 'metadata';
+        video.autoplay = true;
+        video.loop = true;
+        video.muted = true;
+        video.playsInline = true;
+        video.preload = 'auto';
         video.crossOrigin = 'anonymous';
         media.appendChild(video);
         hasMedia = true;
@@ -198,6 +185,40 @@ function createRelatoCard(m) {
     if (hasMedia) card.appendChild(media);
 
     return card;
+}
+
+function createAudioPlayer(src, labelText) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'audio-player';
+
+    const label = document.createElement('label');
+    label.textContent = labelText;
+    wrapper.appendChild(label);
+
+    const audio = document.createElement('audio');
+    audio.src = src;
+    audio.preload = 'metadata';
+    audio.crossOrigin = 'anonymous';
+
+    const btn = document.createElement('button');
+    btn.className = 'audio-play-btn';
+    btn.textContent = '\u25B6';
+    btn.addEventListener('click', () => {
+        if (audio.paused) {
+            audio.play();
+            btn.textContent = '\u275A\u275A';
+        } else {
+            audio.pause();
+            btn.textContent = '\u25B6';
+        }
+    });
+    audio.addEventListener('ended', () => {
+        btn.textContent = '\u25B6';
+    });
+
+    wrapper.appendChild(btn);
+    wrapper.appendChild(audio);
+    return wrapper;
 }
 
 init();
