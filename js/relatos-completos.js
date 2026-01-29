@@ -14,9 +14,11 @@ const TIPO_LABELS = {
 
 let allMaterials = [];
 let currentFilter = 'todos';
+let shuffleMode = false;
 
 async function init() {
     renderFilters();
+    renderShuffleButton();
     await loadMaterials();
 }
 
@@ -30,10 +32,23 @@ function renderFilters() {
             currentFilter = tipo;
             container.querySelectorAll('button').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            shuffleMode = false;
             renderFeed();
         });
         container.appendChild(btn);
     });
+}
+
+function renderShuffleButton() {
+    const container = document.getElementById('shuffle-container');
+    const btn = document.createElement('button');
+    btn.id = 'shuffle-btn';
+    btn.textContent = 'shuffle';
+    btn.addEventListener('click', () => {
+        shuffleMode = true;
+        renderFeed();
+    });
+    container.appendChild(btn);
 }
 
 async function loadMaterials() {
@@ -69,17 +84,26 @@ function renderFeed() {
         ? allMaterials
         : allMaterials.filter(m => m.tipo === currentFilter);
 
-    countEl.textContent = `${filtered.length} relato${filtered.length !== 1 ? 's' : ''}`;
-
     if (filtered.length === 0) {
+        countEl.textContent = '';
         feed.innerHTML = '<div class="empty-msg">Nenhum relato encontrado</div>';
         return;
     }
 
-    feed.innerHTML = '';
-    filtered.forEach(material => {
-        feed.appendChild(createRelatoCard(material));
-    });
+    if (shuffleMode) {
+        const random = filtered[Math.floor(Math.random() * filtered.length)];
+        countEl.textContent = `1 de ${filtered.length}`;
+        feed.innerHTML = '';
+        feed.appendChild(createRelatoCard(random));
+    } else {
+        countEl.textContent = `${filtered.length} relato${filtered.length !== 1 ? 's' : ''}`;
+        feed.innerHTML = '';
+        filtered.forEach(material => {
+            feed.appendChild(createRelatoCard(material));
+        });
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function createRelatoCard(m) {
@@ -129,38 +153,12 @@ function createRelatoCard(m) {
     media.className = 'relato-media';
     let hasMedia = false;
 
-    if (m.video_url) {
-        const label = document.createElement('label');
-        label.textContent = 'video gerado';
-        media.appendChild(label);
-        const video = document.createElement('video');
-        video.src = m.video_url;
-        video.controls = true;
-        video.preload = 'metadata';
-        video.crossOrigin = 'anonymous';
-        media.appendChild(video);
-        hasMedia = true;
-    }
-
     if (m.audio_espectral_url) {
         const label = document.createElement('label');
         label.textContent = 'voz processada';
         media.appendChild(label);
         const audio = document.createElement('audio');
         audio.src = m.audio_espectral_url;
-        audio.controls = true;
-        audio.preload = 'metadata';
-        audio.crossOrigin = 'anonymous';
-        media.appendChild(audio);
-        hasMedia = true;
-    }
-
-    if (m.audio_10s_url) {
-        const label = document.createElement('label');
-        label.textContent = 'paisagem sonora';
-        media.appendChild(label);
-        const audio = document.createElement('audio');
-        audio.src = m.audio_10s_url;
         audio.controls = true;
         audio.preload = 'metadata';
         audio.crossOrigin = 'anonymous';
@@ -177,6 +175,32 @@ function createRelatoCard(m) {
         img.loading = 'lazy';
         img.alt = '';
         media.appendChild(img);
+        hasMedia = true;
+    }
+
+    if (m.audio_10s_url) {
+        const label = document.createElement('label');
+        label.textContent = 'paisagem sonora';
+        media.appendChild(label);
+        const audio = document.createElement('audio');
+        audio.src = m.audio_10s_url;
+        audio.controls = true;
+        audio.preload = 'metadata';
+        audio.crossOrigin = 'anonymous';
+        media.appendChild(audio);
+        hasMedia = true;
+    }
+
+    if (m.video_url) {
+        const label = document.createElement('label');
+        label.textContent = 'video gerado';
+        media.appendChild(label);
+        const video = document.createElement('video');
+        video.src = m.video_url;
+        video.controls = true;
+        video.preload = 'metadata';
+        video.crossOrigin = 'anonymous';
+        media.appendChild(video);
         hasMedia = true;
     }
 

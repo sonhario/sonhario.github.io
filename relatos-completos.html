@@ -127,6 +127,24 @@
             color: var(--color-text-muted);
         }
 
+        .shuffle-row {
+            text-align: center;
+            margin-bottom: var(--space-md);
+        }
+
+        #shuffle-btn {
+            font-size: var(--font-size-sm);
+            padding: var(--space-sm) var(--space-xl);
+            border-radius: 20px;
+            background-color: var(--color-text);
+            border-color: var(--color-text);
+            color: white;
+        }
+
+        #shuffle-btn:hover {
+            background-color: var(--color-accent-hover);
+        }
+
         .count {
             text-align: center;
             font-size: var(--font-size-sm);
@@ -189,6 +207,7 @@
             <h2 class="text-center mb-lg">Relatos Completos</h2>
 
             <div class="filters" id="filters"></div>
+            <div class="shuffle-row" id="shuffle-container"></div>
             <div class="count" id="count"></div>
             <div id="feed"></div>
         </section>
