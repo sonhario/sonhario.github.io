@@ -2,7 +2,7 @@
 // AUDIO-CONTROLLER.JS - Camadas 2 e 3 de Áudio
 // Sonhário v1.1
 //
-// Camada 2: Áudio 10s (AudioLDM2) com crossfade A/B de 3s
+// Camada 2: Áudio ambiente (AudioLDM2, 10-20s) com crossfade A/B de 3s
 // Camada 3: Áudio espectral (voz) com fade dinâmico e duck da camada 2
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -14,7 +14,7 @@ let audioCtx = null;
 let audioLayerActive = false;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CAMADA 2: ÁUDIO 10s COM CROSSFADE
+// CAMADA 2: ÁUDIO AMBIENTE COM CROSSFADE
 // ─────────────────────────────────────────────────────────────────────────────
 
 let layer2Master = null;     // GainNode master da camada 2 (para duck)
@@ -23,8 +23,7 @@ let slotB = null;
 let activeSlot = null;
 let audioCrossfading = false;
 
-const CROSSFADE_AT = 7;
-const CROSSFADE_DURATION = 3;
+const CROSSFADE_DURATION = 3; // duração do crossfade (segundos)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CAMADA 3: ÁUDIO ESPECTRAL COM FADE DINÂMICO
@@ -182,7 +181,9 @@ function checkAudioCrossfade() {
     const dur = activeSlot.element.duration;
     if (!dur || isNaN(dur)) return;
 
-    if (t >= CROSSFADE_AT) {
+    // Crossfade dinâmico: inicia CROSSFADE_DURATION antes do fim do áudio
+    const crossfadeAt = dur - CROSSFADE_DURATION;
+    if (t >= crossfadeAt) {
         audioCrossfading = true;
 
         const nextSlot = (activeSlot === slotA) ? slotB : slotA;
