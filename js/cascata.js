@@ -29,6 +29,10 @@ const CH_GAP_MAX = 0.5;         // initial gap range max
 const CH_GAP_DECAY = 0.75;      // gap multiplier each cycle
 const CH_GAP_FLOOR = 0.05;      // minimum gap
 
+// Preload limits (only load what will actually be used)
+const MAX_IMAGES_PER_CHANNEL = 6;   // ~6 images max in 4-7s with pulsing
+const MAX_VIDEOS_PER_CHANNEL = 2;   // video channel enters late, 2 is enough
+
 // ─────────────────────────────────────────────────────────────────────────────
 // BLOCO 1: DATA LOADER
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,6 +80,14 @@ function pickRandom(predicate, n, exclude) {
         result.push(item);
     }
     return result;
+}
+
+function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,10 +139,12 @@ function generateScore() {
     // Phase 2: 25-45% — image channel + 1 audio 10s
     const phase2Start = duration * 0.25;
     if (imagePool.length > 0) {
+        // Select only what we'll use, not the entire pool
+        const selectedImages1 = shuffleArray([...imagePool]).slice(0, MAX_IMAGES_PER_CHANNEL);
         events.push({
             type: 'image_channel',
             enterAt: phase2Start,
-            pool: imagePool
+            pool: selectedImages1
         });
     }
     if (audios10s[1]) {
@@ -155,20 +169,24 @@ function generateScore() {
         });
     }
     if (imagePool.length > 0) {
+        // Select different images for second channel
+        const selectedImages2 = shuffleArray([...imagePool]).slice(0, MAX_IMAGES_PER_CHANNEL);
         events.push({
             type: 'image_channel',
             enterAt: phase3Start,
-            pool: imagePool
+            pool: selectedImages2
         });
     }
 
     // Phase 4: 60-75% — video channel + 1 audio 10s
     const phase4Start = duration * 0.60;
     if (videoPool.length > 0) {
+        // Select only what we'll use (video channel is brief)
+        const selectedVideos = shuffleArray([...videoPool]).slice(0, MAX_VIDEOS_PER_CHANNEL);
         events.push({
             type: 'video_channel',
             enterAt: phase4Start,
-            pool: videoPool
+            pool: selectedVideos
         });
     }
     if (audios10s[2]) {
@@ -208,10 +226,11 @@ function preloadScore(score, onProgress) {
             } else if (evt.type === 'audio_10s' || evt.type === 'audio_spectral') {
                 totalItems++;
             } else if (evt.type === 'image_channel') {
+                // Pool already limited in generateScore()
                 evt.pool.forEach(u => imageUrls.add(u));
             } else if (evt.type === 'video_channel') {
-                // Preload up to 4 videos for the channel
-                evt.pool.slice(0, 4).forEach(u => videoUrls.add(u));
+                // Pool already limited in generateScore()
+                evt.pool.forEach(u => videoUrls.add(u));
             }
         });
 
@@ -235,8 +254,8 @@ function preloadScore(score, onProgress) {
                         .filter(u => preloadedImages[u])
                         .map(u => preloadedImages[u]);
                 } else if (evt.type === 'video_channel') {
+                    // Pool already limited in generateScore()
                     evt._videos = evt.pool
-                        .slice(0, 4)
                         .filter(u => preloadedVideos[u])
                         .map(u => preloadedVideos[u]);
                 }
