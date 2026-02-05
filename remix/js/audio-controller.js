@@ -262,11 +262,16 @@ function checkAudioCrossfade() {
         const now = audioCtx.currentTime;
 
         loadAudioSlot(nextSlot, () => {
-            activeSlot.gain.gain.setValueAtTime(1, now);
-            activeSlot.gain.gain.linearRampToValueAtTime(0, now + CROSSFADE_DURATION);
+            // Use current time inside callback, not stale 'now' from before async load
+            const cbNow = audioCtx.currentTime;
 
-            nextSlot.gain.gain.setValueAtTime(0, now);
-            nextSlot.gain.gain.linearRampToValueAtTime(1, now + CROSSFADE_DURATION);
+            activeSlot.gain.gain.cancelScheduledValues(cbNow);
+            activeSlot.gain.gain.setValueAtTime(1, cbNow);
+            activeSlot.gain.gain.linearRampToValueAtTime(0, cbNow + CROSSFADE_DURATION);
+
+            nextSlot.gain.gain.cancelScheduledValues(cbNow);
+            nextSlot.gain.gain.setValueAtTime(0, cbNow);
+            nextSlot.gain.gain.linearRampToValueAtTime(1, cbNow + CROSSFADE_DURATION);
 
             console.log(`🔀 Crossfade: ${activeSlot.label} → ${nextSlot.label}`);
         });
