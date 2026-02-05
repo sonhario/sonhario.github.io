@@ -48,6 +48,57 @@ const SPECTRAL_PEAK_VOLUME = 1.5;     // volume do espectral no pico (>1 para co
 // INIT
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Visibility change handler - recupera áudio quando aba volta ao foco
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && audioLayerActive) {
+        console.log('👁️ Aba voltou ao foco - verificando estado do áudio');
+        recoverAudioState();
+    }
+});
+
+function recoverAudioState() {
+    if (!audioCtx || !audioLayerActive) return;
+
+    // Resumir AudioContext se foi suspenso
+    if (audioCtx.state === 'suspended') {
+        console.log('🔄 Resumindo AudioContext suspenso');
+        audioCtx.resume();
+    }
+
+    // Camada 2: verificar se o slot ativo ainda está tocando
+    if (activeSlot) {
+        const el = activeSlot.element;
+        const isPaused = el.paused;
+        const hasEnded = el.ended;
+        const isStalled = el.readyState < 2;
+
+        console.log(`🔍 Slot ${activeSlot.label}: paused=${isPaused}, ended=${hasEnded}, stalled=${isStalled}`);
+
+        if (isPaused || hasEnded || isStalled) {
+            console.log('🔄 Camada 2 parou - reiniciando');
+            audioCrossfading = false;
+
+            // Resetar gains
+            slotA.gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            slotB.gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            layer2Master.gain.setValueAtTime(1, audioCtx.currentTime);
+
+            // Carregar novo áudio no slot ativo
+            loadAudioSlot(activeSlot, () => {
+                activeSlot.gain.gain.setValueAtTime(1, audioCtx.currentTime);
+            });
+        }
+    }
+
+    // Camada 3: verificar se o spectral deveria estar tocando mas parou
+    if (spectralState === 'fading_in' || spectralState === 'peak') {
+        if (spectralElement.paused || spectralElement.ended) {
+            console.log('🔄 Spectral parou durante pico - continuando');
+            loadNextSpectralAudio();
+        }
+    }
+}
+
 function initAudio() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -185,6 +236,17 @@ function loadAudioSlot(slot, onReady) {
 
 function checkAudioCrossfade() {
     if (!audioLayerActive || !activeSlot) return;
+
+    // Detectar se o áudio terminou ou pausou inesperadamente (ex: aba em background)
+    if (activeSlot.element.ended || (activeSlot.element.paused && !audioCrossfading)) {
+        console.log('⚠️ Áudio terminou/pausou inesperadamente - reiniciando');
+        audioCrossfading = false;
+        loadAudioSlot(activeSlot, () => {
+            activeSlot.gain.gain.setValueAtTime(1, audioCtx.currentTime);
+        });
+        return;
+    }
+
     if (activeSlot.element.readyState < 2 || audioCrossfading) return;
 
     const t = activeSlot.element.currentTime;
