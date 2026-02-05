@@ -41,7 +41,7 @@ const SPECTRAL_INTERVAL_MIN = 30000;  // intervalo mínimo entre aparições (ms
 const SPECTRAL_INTERVAL_MAX = 300000; // intervalo máximo (ms)
 const SPECTRAL_PEAK_MIN = 30000;      // duração mínima no pico (ms)
 const SPECTRAL_PEAK_MAX = 120000;     // duração máxima no pico (ms)
-const LAYER2_DUCK_LEVEL = 0.1;        // volume da camada 2 quando espectral está no pico
+const LAYER2_DUCK_LEVEL = 0.25;       // volume da camada 2 quando espectral está no pico (25%)
 const SPECTRAL_PEAK_VOLUME = 1.5;     // volume do espectral no pico (>1 para compensar voz mais baixa)
 
 // ═══════════════════════════════════════════════════════════════════════════════
