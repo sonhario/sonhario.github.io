@@ -22,12 +22,12 @@ const ACCEL_INTERVAL = 0.5;
 const ACCEL_STEP = 0.05;
 
 // Channel timing
-const CH_FIRST_SHOW = 1.0;      // first asset shows for 1s
-const CH_SHOW = 0.5;            // subsequent assets show for 0.5s
-const CH_GAP_MIN = 0.2;         // initial gap range min
-const CH_GAP_MAX = 0.5;         // initial gap range max
-const CH_GAP_DECAY = 0.75;      // gap multiplier each cycle
-const CH_GAP_FLOOR = 0.05;      // minimum gap
+const CH_FIRST_SHOW = 1.5;      // first asset shows for 1.5s (was 1.0)
+const CH_SHOW = 0.8;            // subsequent assets show for 0.8s (was 0.5)
+const CH_GAP_MIN = 0.3;         // initial gap range min (was 0.2)
+const CH_GAP_MAX = 0.6;         // initial gap range max (was 0.5)
+const CH_GAP_DECAY = 0.85;      // gap multiplier each cycle (was 0.75, slower decay)
+const CH_GAP_FLOOR = 0.15;      // minimum gap (was 0.05, too fast)
 
 // Preload limits (only load what will actually be used)
 const MAX_IMAGES_PER_CHANNEL = 6;   // ~6 images max in 4-7s with pulsing
@@ -390,12 +390,11 @@ function initChannel(evt) {
     } else if (evt.type === 'video_channel' && evt._videos && evt._videos.length > 0) {
         evt._currentIdx = Math.floor(Math.random() * evt._videos.length);
         const vid = evt._videos[evt._currentIdx];
-        // Start all channel videos playing
-        evt._videos.forEach(v => {
-            v.loop = true;
-            const p = v.play();
-            if (p) p.catch(() => {});
-        });
+        // Only start the CURRENT video, not all of them
+        vid.loop = true;
+        vid.currentTime = 0;
+        const p = vid.play();
+        if (p) p.catch(() => {});
         if (vid.videoWidth && vid.videoHeight) {
             evt._overlay = calcOverlayPos(vid.videoWidth, vid.videoHeight);
         }
@@ -413,8 +412,18 @@ function advanceChannel(evt) {
         const img = evt._images[evt._currentIdx];
         evt._overlay = calcOverlayPos(img.naturalWidth, img.naturalHeight);
     } else if (evt.type === 'video_channel' && evt._videos && evt._videos.length > 0) {
+        // Pause previous video
+        const prevVid = evt._videos[evt._currentIdx];
+        if (prevVid) {
+            try { prevVid.pause(); } catch (e) {}
+        }
+        // Pick and start new video
         evt._currentIdx = Math.floor(Math.random() * evt._videos.length);
         const vid = evt._videos[evt._currentIdx];
+        vid.loop = true;
+        vid.currentTime = 0;
+        const p = vid.play();
+        if (p) p.catch(() => {});
         if (vid.videoWidth && vid.videoHeight) {
             evt._overlay = calcOverlayPos(vid.videoWidth, vid.videoHeight);
         }
@@ -474,7 +483,7 @@ function startPlayback(score) {
 
     const now = audioCtx.currentTime;
 
-    // Setup audio events
+    // Setup audio events - connect to Web Audio but don't play yet
     score.events.forEach(evt => {
         if (evt.type === 'audio_10s' || evt.type === 'audio_spectral') {
             const el = evt._element;
@@ -483,9 +492,7 @@ function startPlayback(score) {
                 if (!evt._source) {
                     const source = audioCtx.createMediaElementSource(el);
                     const gainNode = audioCtx.createGain();
-                    gainNode.gain.setValueAtTime(0, now);
-                    gainNode.gain.setValueAtTime(0, now + evt.enterAt);
-                    gainNode.gain.linearRampToValueAtTime(evt.gain, now + evt.enterAt + 0.1);
+                    gainNode.gain.setValueAtTime(evt.gain, now); // Start at target gain
                     source.connect(gainNode);
                     gainNode.connect(audioCtx.destination);
                     evt._source = source;
@@ -496,8 +503,7 @@ function startPlayback(score) {
                 console.warn(`Cascata: audio setup error`, e.message);
             }
             el.currentTime = 0;
-            const p = el.play();
-            if (p) p.catch(() => {});
+            evt._started = false; // Flag to track if we've started playback
         }
 
         // Start base video immediately
@@ -533,6 +539,14 @@ function updatePlayback() {
 
         if (evt.type === 'video_base') {
             if (evt._element) drawVideoFit(ctx, evt._element);
+        } else if (evt.type === 'audio_10s' || evt.type === 'audio_spectral') {
+            // Start audio playback when we reach enterAt
+            if (!evt._started && evt._element) {
+                evt._element.currentTime = 0;
+                const p = evt._element.play();
+                if (p) p.catch(() => {});
+                evt._started = true;
+            }
         } else if (evt.type === 'image_channel' || evt.type === 'video_channel') {
             const channelElapsed = elapsed - evt.enterAt;
             // Initialize channel on first frame
