@@ -34,6 +34,7 @@ let spectralGain = null;     // GainNode do espectral
 let spectralState = 'idle';  // 'idle' | 'fading_in' | 'peak' | 'fading_out'
 let spectralTimer = null;
 let spectralMaterials = [];  // materiais que têm audio_espectral_path
+let lastSpectralId = null;   // evita repetir o mesmo áudio consecutivamente
 
 const SPECTRAL_FADE = 5;              // duração do fade in/out (segundos)
 const SPECTRAL_INTERVAL_MIN = 30000;  // intervalo mínimo entre aparições (ms)
@@ -72,6 +73,14 @@ function initAudio() {
     spectralGain.gain.value = 0;
     spectralSource.connect(spectralGain);
     spectralGain.connect(audioCtx.destination);
+
+    // Handler persistente para quando o áudio spectral termina
+    // (evita adicionar múltiplos listeners)
+    spectralElement.addEventListener('ended', () => {
+        if (spectralState === 'fading_in' || spectralState === 'peak') {
+            loadNextSpectralAudio();
+        }
+    });
 
     console.log('✅ AudioContext inicializado (Camadas 2+3)');
 }
@@ -135,6 +144,7 @@ function stopAudioLayer() {
     spectralElement.pause();
     spectralGain.gain.value = 0;
     spectralState = 'idle';
+    lastSpectralId = null;
     if (spectralTimer) {
         clearTimeout(spectralTimer);
         spectralTimer = null;
@@ -224,8 +234,17 @@ function scheduleNextSpectral() {
     }, interval);
 }
 
+function pickSpectralMaterial() {
+    // Evita repetir o mesmo áudio consecutivamente
+    const available = spectralMaterials.filter(m => m.id !== lastSpectralId);
+    const pool = available.length > 0 ? available : spectralMaterials;
+    const material = pool[Math.floor(Math.random() * pool.length)];
+    if (material) lastSpectralId = material.id;
+    return material;
+}
+
 function startSpectralAppearance() {
-    const material = spectralMaterials[Math.floor(Math.random() * spectralMaterials.length)];
+    const material = pickSpectralMaterial();
     if (!material) return;
 
     const audioPath = getMediaPath(material.audio_espectral_path);
@@ -265,12 +284,8 @@ function startSpectralAppearance() {
 
     spectralElement.addEventListener('canplay', startPlay, { once: true });
 
-    // Quando o áudio atual termina, carregar próxima voz aleatória
-    spectralElement.addEventListener('ended', () => {
-        if (spectralState === 'fading_in' || spectralState === 'peak') {
-            loadNextSpectralAudio();
-        }
-    }, { once: true });
+    // Nota: o handler de 'ended' é persistente em initAudio()
+    // Não adicionar outro listener aqui para evitar duplicação
 
     spectralElement.addEventListener('error', () => {
         console.error('❌ Espectral: erro ao carregar');
@@ -283,7 +298,7 @@ function startSpectralAppearance() {
 }
 
 function loadNextSpectralAudio() {
-    const material = spectralMaterials[Math.floor(Math.random() * spectralMaterials.length)];
+    const material = pickSpectralMaterial();
     if (!material) return;
 
     const audioPath = getMediaPath(material.audio_espectral_path);
@@ -292,12 +307,8 @@ function loadNextSpectralAudio() {
     spectralElement.src = audioPath;
     spectralElement.load();
 
-    // Encadear: quando este também terminar, carregar outro
-    spectralElement.addEventListener('ended', () => {
-        if (spectralState === 'fading_in' || spectralState === 'peak') {
-            loadNextSpectralAudio();
-        }
-    }, { once: true });
+    // Nota: o handler de 'ended' é gerenciado por setupSpectralEndedHandler()
+    // Não adicionar outro listener aqui para evitar duplicação
 
     const p = spectralElement.play();
     if (p) p.catch(e => console.error('❌ Espectral play:', e.message));
