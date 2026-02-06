@@ -9,23 +9,43 @@ html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: #000;
+    background-color: #1a1d2e;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
 }
 
-/* p5.js Container */
+/* p5.js Container — 16:9 at 85% viewport, centered */
 #p5-container {
-    width: 100%;
-    height: 100%;
     position: fixed;
-    top: 0;
-    left: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 #p5-container canvas {
     display: block;
     width: 100%;
     height: 100%;
+}
+
+/* Nav */
+.remix-nav {
+    position: fixed;
+    top: 1.5vmin;
+    right: 1.5vmin;
+    z-index: 200;
+    display: flex;
+    gap: 1.5vmin;
+    font-size: 1.2vmin;
+}
+
+.remix-nav a {
+    color: rgba(255, 255, 255, 0.35);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.remix-nav a:hover {
+    color: rgba(255, 255, 255, 0.8);
 }
 
 /* PLAY Button */
@@ -36,33 +56,29 @@ html, body {
     transform: translate(-50%, -50%);
     z-index: 100;
 
-    /* Styling */
-    background: rgba(255, 255, 255, 0.15);
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    color: #fff;
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    padding: 16px 32px;
-    border-radius: 50px;
+    background: #1a1d2e;
+    border: 0.15vmin solid #1a1d2e;
+    color: #ffffff;
+    font-size: 2.5vmin;
+    font-weight: 500;
+    letter-spacing: 0.5vmin;
+    padding: 2.2vmin 5vmin;
+    border-radius: 0;
     cursor: pointer;
-
-    /* Transitions */
     transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
+    text-transform: uppercase;
 }
 
 .play-btn:hover {
-    background: rgba(255, 255, 255, 0.25);
-    border-color: rgba(255, 255, 255, 0.8);
-    transform: translate(-50%, -50%) scale(1.1);
+    background: #262a3f;
+    border-color: #262a3f;
+    transform: translate(-50%, -50%) scale(1.05);
 }
 
 .play-btn:active {
     transform: translate(-50%, -50%) scale(0.95);
 }
 
-/* Hidden state (after clicking PLAY) */
 .play-btn.hidden {
     opacity: 0;
     pointer-events: none;
@@ -70,10 +86,36 @@ html, body {
     transition: all 0.3s ease;
 }
 
-/* Mobile adjustments */
-@media (max-width: 768px) {
-    .play-btn {
-        font-size: 16px;
-        padding: 12px 24px;
-    }
+/* Fullscreen Button */
+.fullscreen-btn {
+    position: fixed;
+    z-index: 150;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.25);
+    cursor: pointer;
+    padding: 0.8vmin;
+    transition: color 0.3s ease;
+    line-height: 0;
+}
+
+.fullscreen-btn svg {
+    width: 2vmin;
+    height: 2vmin;
+}
+
+.fullscreen-btn:hover {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Fullscreen mode — hide nav, reposition fullscreen btn */
+:fullscreen .remix-nav,
+:-webkit-full-screen .remix-nav {
+    display: none;
+}
+
+:fullscreen .fullscreen-btn,
+:-webkit-full-screen .fullscreen-btn {
+    bottom: 1vmin;
+    right: 1vmin;
 }

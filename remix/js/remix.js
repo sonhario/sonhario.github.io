@@ -18,20 +18,80 @@ let backVideo = null;   // próximo vídeo (pré-carregado, desenhado por baixo)
 let backVideoReady = false; // back video tem dados suficientes para tocar
 
 // ─────────────────────────────────────────────────────────────────────────────
+// CANVAS SIZING — 16:9 at 85% viewport (matches Cascata)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function calc16x9(fraction) {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let w = vw * fraction;
+    let h = w * 9 / 16;
+    if (h > vh * fraction) {
+        h = vh * fraction;
+        w = h * 16 / 9;
+    }
+    return { w: Math.floor(w), h: Math.floor(h) };
+}
+
+function applyCanvasSize() {
+    const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    const container = document.getElementById('p5-container');
+    const fsBtn = document.getElementById('fullscreen-btn');
+
+    if (isFS) {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        container.style.width = w + 'px';
+        container.style.height = h + 'px';
+        resizeCanvas(w, h);
+        // Position fullscreen btn at bottom-right of screen
+        fsBtn.style.bottom = '1vmin';
+        fsBtn.style.right = '1vmin';
+    } else {
+        const { w, h } = calc16x9(0.85);
+        container.style.width = w + 'px';
+        container.style.height = h + 'px';
+        resizeCanvas(w, h);
+        // Position fullscreen btn at bottom-right of canvas
+        const rect = container.getBoundingClientRect();
+        fsBtn.style.bottom = (window.innerHeight - rect.bottom + 4) + 'px';
+        fsBtn.style.right = (window.innerWidth - rect.right + 4) + 'px';
+    }
+}
+
+function toggleFullscreen() {
+    const container = document.getElementById('p5-container');
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    } else {
+        (container.requestFullscreen || container.webkitRequestFullscreen).call(container);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SETUP - Inicializar p5.js e Carregar Dados
 // ─────────────────────────────────────────────────────────────────────────────
 
 function setup() {
-    // Criar canvas responsivo
-    let container = document.getElementById('p5-container');
-    let w = container.clientWidth;
-    let h = container.clientHeight;
+    const { w, h } = calc16x9(0.85);
+    const container = document.getElementById('p5-container');
+    container.style.width = w + 'px';
+    container.style.height = h + 'px';
 
-    createCanvas(w, h);
+    const cnv = createCanvas(w, h);
+    cnv.parent('p5-container');
 
     // Referência ao botão PLAY
     playButton = document.getElementById('play-button');
     playButton.addEventListener('click', togglePlayPause);
+
+    // Fullscreen button
+    document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen);
+    document.addEventListener('fullscreenchange', () => applyCanvasSize());
+    document.addEventListener('webkitfullscreenchange', () => applyCanvasSize());
+
+    // Position fullscreen btn relative to canvas
+    applyCanvasSize();
 
     // Criar dois elementos <video> HTML5 (ocultos do DOM) para double-buffer
     frontVideo = createHiddenVideo();
@@ -40,7 +100,7 @@ function setup() {
     // Carregar materiais do JSON
     loadMaterials();
 
-    console.log('✅ Setup p5.js completo');
+    console.log('Setup p5.js completo');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -60,13 +120,6 @@ function draw() {
         updateImageLayer();
     }
 
-    // Placeholder: mostrar status quando pausado
-    if (!isPlaying) {
-        fill(255);
-        textAlign(CENTER, CENTER);
-        textSize(14);
-        text('Clique em PLAY para começar', width / 2, height / 2 + 100);
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -261,11 +314,7 @@ function pausePlayback() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function windowResized() {
-    let container = document.getElementById('p5-container');
-    let w = container.clientWidth;
-    let h = container.clientHeight;
-
-    resizeCanvas(w, h);
+    applyCanvasSize();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
