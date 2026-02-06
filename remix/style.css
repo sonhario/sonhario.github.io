@@ -48,7 +48,7 @@ html, body {
     color: rgba(255, 255, 255, 0.8);
 }
 
-/* PLAY Button */
+/* PLAY Button — circle with triangle */
 .play-btn {
     position: fixed;
     top: 50%;
@@ -56,23 +56,34 @@ html, body {
     transform: translate(-50%, -50%);
     z-index: 100;
 
-    background: #1a1d2e;
-    border: 0.15vmin solid #1a1d2e;
-    color: #ffffff;
-    font-size: 2.5vmin;
-    font-weight: 500;
-    letter-spacing: 0.5vmin;
-    padding: 2.2vmin 5vmin;
-    border-radius: 0;
+    width: 8vmin;
+    height: 8vmin;
+    background: rgba(255, 255, 255, 0.08);
+    border: 0.2vmin solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
     cursor: pointer;
     transition: all 0.3s ease;
-    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.play-btn svg {
+    width: 3vmin;
+    height: 3vmin;
+    margin-left: 0.4vmin; /* optical center — triangle points right */
+    fill: rgba(255, 255, 255, 0.7);
 }
 
 .play-btn:hover {
-    background: #262a3f;
-    border-color: #262a3f;
-    transform: translate(-50%, -50%) scale(1.05);
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%) scale(1.08);
+}
+
+.play-btn:hover svg {
+    fill: rgba(255, 255, 255, 0.9);
 }
 
 .play-btn:active {
