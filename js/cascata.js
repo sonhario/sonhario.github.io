@@ -1,9 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// CASCATA.JS - Engine Audiovisual de Partitura Finita
-// Sonhario v1.3
+// CASCATA V2 - Engine Audiovisual de Partitura Finita
+// Sonhario v2.2
 //
-// Gera burst audiovisual de 4-7s com intensificacao progressiva e corte seco.
-// Canais de overlay pulsantes: ciclam por multiplos assets com tempos decrescentes.
+// 4 image channels + 3 video channels sobre fundo pulsante.
+// 3 audio ambient channels + 1 spectral channel (pools encadeados).
+// Pools compartilhados. Frequencia visual progressiva.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -13,25 +14,57 @@
 const SUPABASE_URL = 'https://nxanctcrqdcbbuhlktzb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54YW5jdGNycWRjYmJ1aGxrdHpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNTUxOTEsImV4cCI6MjA4NDkzMTE5MX0.TkeaWGSR0MM0_VLJaOMFchdbkkM_fRPM5Zr53g7R7zk';
 
-const DURATIONS = [4, 4.5, 5, 5.5, 6, 6.5, 7];
-const SCALE_MIN = 0.07;
-const SCALE_MAX = 0.70;
-const MARGIN = 0.07;
-const PRELOAD_TIMEOUT = 15000;
+// Duration range (seconds)
+const DURATIONS = [20, 22, 24, 25, 26];
+
+// Checkerboard grid (PNG transparency pattern)
+const GRID_CELL = 16;              // pixels per square
+const GRID_COLOR_A = [235, 235, 235]; // light
+const GRID_COLOR_B = [210, 210, 210]; // slightly darker
+
+// Pulse timing (seconds per phase)
+const PULSE_LOADING = 1.5;
+const PULSE_CASCATA = 0.7;
+
+// Overlay sizing
+const SCALE_MIN = 0.10;
+const SCALE_MAX = 0.65;
+const MARGIN = 0.05;
+
+// Image crop range (show 50-100% of each dimension)
+const CROP_MIN = 0.5;
+const CROP_MAX = 1.0;
+
+// Visual channel timing (base values — divided by speed multiplier)
+const CH_FIRST_SHOW = 4.5;
+const CH_SHOW = 2.5;
+const CH_GAP_MIN = 1.0;
+const CH_GAP_MAX = 2.5;
+
+// Speed curve: quartic (slow ramp, late acceleration)
+// t=0: 1x, t=0.5: 2.1x, t=0.75: 6.7x, t=1: 19x
+const SPEED_EXPONENT = 4;
+const SPEED_MAX_MULT = 18;
+
+// Video channels: cap cycle speed
+const VIDEO_SPEED_CAP = 6.0;
+
+// Video acceleration in last phase
+const ACCEL_PHASE = 0.74;
 const ACCEL_INTERVAL = 0.5;
 const ACCEL_STEP = 0.05;
 
-// Channel timing
-const CH_FIRST_SHOW = 1.5;      // first asset shows for 1.5s (was 1.0)
-const CH_SHOW = 0.8;            // subsequent assets show for 0.8s (was 0.5)
-const CH_GAP_MIN = 0.3;         // initial gap range min (was 0.2)
-const CH_GAP_MAX = 0.6;         // initial gap range max (was 0.5)
-const CH_GAP_DECAY = 0.85;      // gap multiplier each cycle (was 0.75, slower decay)
-const CH_GAP_FLOOR = 0.15;      // minimum gap (was 0.05, too fast)
+// Shared pool sizes
+const SHARED_IMAGES = 10;
+const SHARED_VIDEOS = 4;
 
-// Preload limits (only load what will actually be used)
-const MAX_IMAGES_PER_CHANNEL = 6;   // ~6 images max in 4-7s with pulsing
-const MAX_VIDEOS_PER_CHANNEL = 2;   // video channel enters late, 2 is enough
+// Audio pools: each channel gets N audio files that chain until hard cut
+const AUDIO_PER_AMBIENT = 2;    // files per ambient channel
+const AUDIO_PER_SPECTRAL = 2;   // files per spectral channel
+const NUM_AMBIENT_CHANNELS = 5;
+const NUM_SPECTRAL_CHANNELS = 3;
+
+const PRELOAD_TIMEOUT = 15000;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BLOCO 1: DATA LOADER
@@ -66,282 +99,250 @@ async function loadData() {
     }));
 
     dataLoaded = true;
-    console.log(`Cascata: ${allMaterials.length} materiais carregados`);
+    console.log(`Cascata v2: ${allMaterials.length} materiais carregados`);
 }
 
-function pickRandom(predicate, n, exclude) {
-    const pool = allMaterials.filter(m => predicate(m) && !exclude.has(m.id));
-    const result = [];
-    const used = new Set(exclude);
-    for (let i = 0; i < n && pool.length > 0; i++) {
-        const idx = Math.floor(Math.random() * pool.length);
-        const item = pool.splice(idx, 1)[0];
-        used.add(item.id);
-        result.push(item);
-    }
-    return result;
+function pickRandomUrls(predicate, urlKey, n) {
+    const pool = allMaterials.filter(predicate).map(m => m[urlKey]);
+    return shuffleArray(pool).slice(0, n);
 }
 
 function shuffleArray(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
+        [a[i], a[j]] = [a[j], a[i]];
     }
-    return arr;
+    return a;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BLOCO 2: SCORE GENERATOR
+// BLOCO 2: SPEED CURVE
+// ─────────────────────────────────────────────────────────────────────────────
+
+function getSpeedMultiplier(elapsed, duration) {
+    const t = Math.min(elapsed / duration, 1);
+    return 1 + Math.pow(t, SPEED_EXPONENT) * SPEED_MAX_MULT;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BLOCO 3: SCORE GENERATOR
 // ─────────────────────────────────────────────────────────────────────────────
 
 function generateScore() {
     const duration = DURATIONS[Math.floor(Math.random() * DURATIONS.length)];
-    const used = new Set();
     const events = [];
 
-    // Select base video + audios (same as before)
-    const videos = pickRandom(m => m.video_url, 1, used);
-    videos.forEach(v => used.add(v.id));
+    // Shared visual pools
+    const allImageUrls = pickRandomUrls(m => m.imagem_url, 'imagem_url', SHARED_IMAGES);
+    const allVideoUrls = pickRandomUrls(m => m.video_url, 'video_url', SHARED_VIDEOS);
 
-    const audios10s = pickRandom(m => m.audio_10s_url, 3, used);
-    audios10s.forEach(a => used.add(a.id));
+    // Audio pools
+    const totalAmbient = NUM_AMBIENT_CHANNELS * AUDIO_PER_AMBIENT;
+    const ambientUrls = pickRandomUrls(m => m.audio_10s_url, 'audio_10s_url', totalAmbient);
+    const totalSpectral = NUM_SPECTRAL_CHANNELS * AUDIO_PER_SPECTRAL;
+    const spectralUrls = pickRandomUrls(m => m.audio_espectral_url, 'audio_espectral_url', totalSpectral);
 
-    const spectrals = pickRandom(m => m.audio_espectral_url, 1, used);
-    spectrals.forEach(s => used.add(s.id));
+    console.log(`Cascata v2: ${ambientUrls.length} ambient urls, ${spectralUrls.length} spectral urls`);
 
-    // Collect pools for channels (all available, excluding base video/audios)
-    const imagePool = allMaterials
-        .filter(m => m.imagem_url && !used.has(m.id))
-        .map(m => m.imagem_url);
-    const videoPool = allMaterials
-        .filter(m => m.video_url && !used.has(m.id))
-        .map(m => m.video_url);
+    // 7 visual channels staggered
+    const visualSchedule = [
+        { type: 'image_channel', pct: 0.00 },
+        { type: 'video_channel', pct: 0.10 },
+        { type: 'image_channel', pct: 0.20 },
+        { type: 'video_channel', pct: 0.33 },
+        { type: 'image_channel', pct: 0.46 },
+        { type: 'video_channel', pct: 0.58 },
+        { type: 'image_channel', pct: 0.70 },
+    ];
 
-    // Phase 1: 0-25% — base video + 1 audio 10s
-    if (videos[0]) {
-        events.push({
-            type: 'video_base',
-            enterAt: 0,
-            url: videos[0].video_url,
-            id: videos[0].id
-        });
-    }
-    if (audios10s[0]) {
-        events.push({
-            type: 'audio_10s',
-            enterAt: 0,
-            url: audios10s[0].audio_10s_url,
-            gain: 1.0,
-            id: audios10s[0].id
-        });
-    }
+    visualSchedule.forEach(ch => {
+        const enterAt = duration * ch.pct;
+        if (ch.type === 'image_channel' && allImageUrls.length > 0) {
+            events.push({ type: 'image_channel', enterAt });
+        } else if (ch.type === 'video_channel' && allVideoUrls.length > 0) {
+            events.push({ type: 'video_channel', enterAt });
+        }
+    });
 
-    // Phase 2: 25-45% — image channel + 1 audio 10s
-    const phase2Start = duration * 0.25;
-    if (imagePool.length > 0) {
-        // Select only what we'll use, not the entire pool
-        const selectedImages1 = shuffleArray([...imagePool]).slice(0, MAX_IMAGES_PER_CHANNEL);
-        events.push({
-            type: 'image_channel',
-            enterAt: phase2Start,
-            pool: selectedImages1
-        });
-    }
-    if (audios10s[1]) {
-        events.push({
-            type: 'audio_10s',
-            enterAt: phase2Start,
-            url: audios10s[1].audio_10s_url,
-            gain: 1.0,
-            id: audios10s[1].id
-        });
-    }
+    // 5 ambient audio channels (staggered, more overlap = fewer gaps)
+    const ambientEntries = [1 / duration, 0.12, 0.25, 0.40, 0.58];
+    ambientEntries.forEach((pct, i) => {
+        const start = i * AUDIO_PER_AMBIENT;
+        const pool = ambientUrls.slice(start, start + AUDIO_PER_AMBIENT);
+        if (pool.length > 0) {
+            events.push({
+                type: 'audio_channel',
+                subtype: 'ambient',
+                enterAt: duration * pct,
+                audioUrls: pool,
+                gain: 1.0
+            });
+        }
+    });
 
-    // Phase 3: 45-60% — spectral voice + image channel
-    const phase3Start = duration * 0.45;
-    if (spectrals[0]) {
-        events.push({
-            type: 'audio_spectral',
-            enterAt: phase3Start,
-            url: spectrals[0].audio_espectral_url,
-            gain: 1.5,
-            id: spectrals[0].id
-        });
-    }
-    if (imagePool.length > 0) {
-        // Select different images for second channel
-        const selectedImages2 = shuffleArray([...imagePool]).slice(0, MAX_IMAGES_PER_CHANNEL);
-        events.push({
-            type: 'image_channel',
-            enterAt: phase3Start,
-            pool: selectedImages2
-        });
-    }
+    // 3 spectral audio channels (each with own pool, all fade out at end)
+    const spectralEntries = [5, 12, 18]; // fixed seconds
+    spectralEntries.forEach((enterAt, i) => {
+        const start = i * AUDIO_PER_SPECTRAL;
+        const pool = spectralUrls.slice(start, start + AUDIO_PER_SPECTRAL);
+        if (pool.length > 0) {
+            events.push({
+                type: 'audio_channel',
+                subtype: 'spectral',
+                enterAt,
+                audioUrls: pool,
+                gain: 1.5
+            });
+        }
+    });
 
-    // Phase 4: 60-75% — video channel + 1 audio 10s
-    const phase4Start = duration * 0.60;
-    if (videoPool.length > 0) {
-        // Select only what we'll use (video channel is brief)
-        const selectedVideos = shuffleArray([...videoPool]).slice(0, MAX_VIDEOS_PER_CHANNEL);
-        events.push({
-            type: 'video_channel',
-            enterAt: phase4Start,
-            pool: selectedVideos
-        });
-    }
-    if (audios10s[2]) {
-        events.push({
-            type: 'audio_10s',
-            enterAt: phase4Start,
-            url: audios10s[2].audio_10s_url,
-            gain: 1.0,
-            id: audios10s[2].id
-        });
-    }
+    const accelStart = duration * ACCEL_PHASE;
 
-    const accelStart = duration * 0.75;
+    console.log(`Cascata v2: partitura ${duration}s, ${events.length} eventos, ` +
+        `${allImageUrls.length} imgs, ${allVideoUrls.length} vids, ` +
+        `${ambientUrls.length} audio ambient (${NUM_AMBIENT_CHANNELS} ch), ` +
+        `${spectralUrls.length} audio spectral (${NUM_SPECTRAL_CHANNELS} ch)`);
 
-    console.log(`Cascata: partitura ${duration}s, ${events.length} eventos, img pool ${imagePool.length}, vid pool ${videoPool.length}`);
-
-    return { duration, events, accelStart };
+    return { duration, events, accelStart, sharedImageUrls: allImageUrls, sharedVideoUrls: allVideoUrls };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BLOCO 3: PRELOADER
+// BLOCO 4: PRELOADER
 // ─────────────────────────────────────────────────────────────────────────────
+
+let sharedPreloadedImages = [];
+let sharedPreloadedVideos = [];
 
 function preloadScore(score, onProgress) {
     return new Promise((resolve) => {
-        // Count total items to preload
         let totalItems = 0;
         let loadedItems = 0;
+        let finalized = false;
 
-        // Collect unique URLs across all channels + single events
-        const imageUrls = new Set();
-        const videoUrls = new Set();
-
+        // Count all items to preload
+        totalItems += score.sharedImageUrls.length;
+        totalItems += score.sharedVideoUrls.length;
         score.events.forEach(evt => {
-            if (evt.type === 'video_base') {
-                videoUrls.add(evt.url);
-            } else if (evt.type === 'audio_10s' || evt.type === 'audio_spectral') {
-                totalItems++;
-            } else if (evt.type === 'image_channel') {
-                // Pool already limited in generateScore()
-                evt.pool.forEach(u => imageUrls.add(u));
-            } else if (evt.type === 'video_channel') {
-                // Pool already limited in generateScore()
-                evt.pool.forEach(u => videoUrls.add(u));
+            if (evt.type === 'audio_channel') {
+                totalItems += evt.audioUrls.length;
             }
         });
 
-        totalItems += imageUrls.size + videoUrls.size;
-
-        // Shared preloaded asset caches
-        const preloadedImages = {};  // url -> Image
-        const preloadedVideos = {};  // url -> HTMLVideoElement
+        const tempImages = {};
+        const tempVideos = {};
 
         function itemDone() {
+            if (finalized) return;
             loadedItems++;
             if (onProgress) onProgress(loadedItems, totalItems);
             if (loadedItems >= totalItems) finalize();
         }
 
         function finalize() {
-            // Attach preloaded assets to events
-            score.events.forEach(evt => {
-                if (evt.type === 'image_channel') {
-                    evt._images = evt.pool
-                        .filter(u => preloadedImages[u])
-                        .map(u => preloadedImages[u]);
-                } else if (evt.type === 'video_channel') {
-                    // Pool already limited in generateScore()
-                    evt._videos = evt.pool
-                        .filter(u => preloadedVideos[u])
-                        .map(u => preloadedVideos[u]);
-                }
-            });
+            if (finalized) return;
+            finalized = true;
+
+            sharedPreloadedImages = score.sharedImageUrls
+                .filter(u => tempImages[u]).map(u => tempImages[u]);
+            sharedPreloadedVideos = score.sharedVideoUrls
+                .filter(u => tempVideos[u]).map(u => tempVideos[u]);
+
+            console.log(`Cascata v2: preload completo — ${sharedPreloadedImages.length} imgs, ` +
+                `${sharedPreloadedVideos.length} vids`);
             resolve();
         }
 
         // Preload images
-        imageUrls.forEach(url => {
+        score.sharedImageUrls.forEach(url => {
+            let done = false;
             const img = new Image();
             img.crossOrigin = 'anonymous';
             const timeout = setTimeout(() => {
-                preloadedImages[url] = img; // may partially work
+                if (done) return; done = true;
                 itemDone();
             }, PRELOAD_TIMEOUT);
             img.onload = () => {
+                if (done) return; done = true;
                 clearTimeout(timeout);
-                preloadedImages[url] = img;
+                tempImages[url] = img;
                 itemDone();
             };
             img.onerror = () => {
+                if (done) return; done = true;
                 clearTimeout(timeout);
                 itemDone();
             };
             img.src = url;
         });
 
-        // Preload videos (base + channel)
-        videoUrls.forEach(url => {
+        // Preload videos
+        score.sharedVideoUrls.forEach(url => {
+            let done = false;
             const vid = document.createElement('video');
             vid.crossOrigin = 'anonymous';
             vid.muted = true;
             vid.playsInline = true;
             vid.preload = 'auto';
+            vid.loop = true;
             vid.style.display = 'none';
             vid.src = url;
             document.body.appendChild(vid);
 
             const timeout = setTimeout(() => {
-                preloadedVideos[url] = vid;
+                if (done) return; done = true;
+                tempVideos[url] = vid;
                 itemDone();
             }, PRELOAD_TIMEOUT);
 
             vid.addEventListener('canplaythrough', () => {
+                if (done) return; done = true;
                 clearTimeout(timeout);
-                preloadedVideos[url] = vid;
+                tempVideos[url] = vid;
                 itemDone();
             }, { once: true });
 
             vid.load();
         });
 
-        // Attach base video element directly
+        // Preload audio channel elements
         score.events.forEach(evt => {
-            if (evt.type === 'video_base') {
-                // Will be set by the video preload above
-                Object.defineProperty(evt, '_element', {
-                    get: () => preloadedVideos[evt.url],
-                    configurable: true
-                });
-            }
-        });
+            if (evt.type !== 'audio_channel') return;
 
-        // Preload audio elements
-        score.events.forEach(evt => {
-            if (evt.type === 'audio_10s' || evt.type === 'audio_spectral') {
+            evt._audioElements = [];
+
+            evt.audioUrls.forEach((url, idx) => {
+                let done = false;
                 const el = document.createElement('audio');
                 el.crossOrigin = 'anonymous';
                 el.preload = 'auto';
                 el.style.display = 'none';
-                el.src = evt.url;
+                el.src = url;
                 document.body.appendChild(el);
 
                 const timeout = setTimeout(() => {
-                    evt._element = el;
+                    if (done) return; done = true;
+                    evt._audioElements[idx] = el;
                     itemDone();
                 }, PRELOAD_TIMEOUT);
 
                 el.addEventListener('canplaythrough', () => {
+                    if (done) return; done = true;
                     clearTimeout(timeout);
-                    evt._element = el;
+                    evt._audioElements[idx] = el;
+                    itemDone();
+                }, { once: true });
+
+                el.addEventListener('error', () => {
+                    if (done) return; done = true;
+                    clearTimeout(timeout);
+                    console.error(`Cascata v2: audio ERRO ${evt.subtype}[${idx}]`);
+                    evt._audioElements[idx] = null;
                     itemDone();
                 }, { once: true });
 
                 el.load();
-            }
+            });
         });
 
         if (totalItems === 0) finalize();
@@ -349,102 +350,115 @@ function preloadScore(score, onProgress) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BLOCO 4: PLAYBACK ENGINE
+// BLOCO 5: OVERLAY POSITIONING
 // ─────────────────────────────────────────────────────────────────────────────
 
-let audioCtx = null;
-let scoreData = null;
-let playbackStart = 0;
-let isPlaying = false;
-let currentPlaybackRate = 1.0;
-let gainNodes = [];
+function calcImageOverlay(natW, natH) {
+    const cropFracW = CROP_MIN + Math.random() * (CROP_MAX - CROP_MIN);
+    const cropFracH = CROP_MIN + Math.random() * (CROP_MAX - CROP_MIN);
+    const srcW = Math.floor(natW * cropFracW);
+    const srcH = Math.floor(natH * cropFracH);
+    const srcX = Math.floor(Math.random() * (natW - srcW));
+    const srcY = Math.floor(Math.random() * (natH - srcH));
 
-function calcOverlayPos(natW, natH) {
     const canvasMax = Math.max(width, height);
     const targetSize = canvasMax * (SCALE_MIN + Math.random() * (SCALE_MAX - SCALE_MIN));
-    const imgMax = Math.max(natW, natH);
-    const scale = targetSize / imgMax;
-    const drawW = natW * scale;
-    const drawH = natH * scale;
+    const cropMax = Math.max(srcW, srcH);
+    const scale = targetSize / cropMax;
+    const drawW = srcW * scale;
+    const drawH = srcH * scale;
+
     const mx = width * MARGIN;
     const my = height * MARGIN;
     const x = mx + Math.random() * Math.max(0, width - 2 * mx - drawW);
     const y = my + Math.random() * Math.max(0, height - 2 * my - drawH);
+
+    return { srcX, srcY, srcW, srcH, x, y, w: drawW, h: drawH };
+}
+
+function calcVideoOverlay(vidW, vidH) {
+    const canvasMax = Math.max(width, height);
+    const targetSize = canvasMax * (SCALE_MIN + Math.random() * (SCALE_MAX - SCALE_MIN));
+    const vidMax = Math.max(vidW, vidH);
+    const scale = targetSize / vidMax;
+    const drawW = vidW * scale;
+    const drawH = vidH * scale;
+
+    const mx = width * MARGIN;
+    const my = height * MARGIN;
+    const x = mx + Math.random() * Math.max(0, width - 2 * mx - drawW);
+    const y = my + Math.random() * Math.max(0, height - 2 * my - drawH);
+
     return { x, y, w: drawW, h: drawH };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BLOCO 6: VISUAL CHANNEL STATE MACHINE
+// ─────────────────────────────────────────────────────────────────────────────
 
 function initChannel(evt) {
     evt._phase = 'show';
     evt._cycleCount = 0;
-    evt._showDuration = CH_FIRST_SHOW;
-    evt._gapRange = CH_GAP_MIN + Math.random() * (CH_GAP_MAX - CH_GAP_MIN);
-    evt._phaseStart = 0; // relative to channel enterAt
+    evt._phaseStart = 0;
     evt._currentIdx = 0;
     evt._overlay = null;
 
-    // Pick first asset and calculate position
-    if (evt.type === 'image_channel' && evt._images && evt._images.length > 0) {
-        evt._currentIdx = Math.floor(Math.random() * evt._images.length);
-        const img = evt._images[evt._currentIdx];
-        evt._overlay = calcOverlayPos(img.naturalWidth, img.naturalHeight);
-    } else if (evt.type === 'video_channel' && evt._videos && evt._videos.length > 0) {
-        evt._currentIdx = Math.floor(Math.random() * evt._videos.length);
-        const vid = evt._videos[evt._currentIdx];
-        // Only start the CURRENT video, not all of them
-        vid.loop = true;
-        vid.currentTime = 0;
+    if (evt.type === 'image_channel' && sharedPreloadedImages.length > 0) {
+        evt._currentIdx = Math.floor(Math.random() * sharedPreloadedImages.length);
+        const img = sharedPreloadedImages[evt._currentIdx];
+        evt._overlay = calcImageOverlay(img.naturalWidth, img.naturalHeight);
+    } else if (evt.type === 'video_channel' && sharedPreloadedVideos.length > 0) {
+        evt._currentIdx = Math.floor(Math.random() * sharedPreloadedVideos.length);
+        const vid = sharedPreloadedVideos[evt._currentIdx];
+        vid.currentTime = Math.random() * (vid.duration || 1);
         const p = vid.play();
         if (p) p.catch(() => {});
         if (vid.videoWidth && vid.videoHeight) {
-            evt._overlay = calcOverlayPos(vid.videoWidth, vid.videoHeight);
+            evt._overlay = calcVideoOverlay(vid.videoWidth, vid.videoHeight);
         }
     }
 }
 
 function advanceChannel(evt) {
     evt._cycleCount++;
-    evt._showDuration = CH_SHOW;
-    evt._gapRange = Math.max(CH_GAP_FLOOR, evt._gapRange * CH_GAP_DECAY);
 
-    // Pick new random asset
-    if (evt.type === 'image_channel' && evt._images && evt._images.length > 0) {
-        evt._currentIdx = Math.floor(Math.random() * evt._images.length);
-        const img = evt._images[evt._currentIdx];
-        evt._overlay = calcOverlayPos(img.naturalWidth, img.naturalHeight);
-    } else if (evt.type === 'video_channel' && evt._videos && evt._videos.length > 0) {
-        // Pause previous video
-        const prevVid = evt._videos[evt._currentIdx];
-        if (prevVid) {
-            try { prevVid.pause(); } catch (e) {}
+    if (evt.type === 'image_channel' && sharedPreloadedImages.length > 0) {
+        evt._currentIdx = Math.floor(Math.random() * sharedPreloadedImages.length);
+        const img = sharedPreloadedImages[evt._currentIdx];
+        evt._overlay = calcImageOverlay(img.naturalWidth, img.naturalHeight);
+    } else if (evt.type === 'video_channel' && sharedPreloadedVideos.length > 0) {
+        evt._currentIdx = Math.floor(Math.random() * sharedPreloadedVideos.length);
+        const vid = sharedPreloadedVideos[evt._currentIdx];
+        if (vid.paused) {
+            vid.currentTime = Math.random() * (vid.duration || 1);
+            const p = vid.play();
+            if (p) p.catch(() => {});
         }
-        // Pick and start new video
-        evt._currentIdx = Math.floor(Math.random() * evt._videos.length);
-        const vid = evt._videos[evt._currentIdx];
-        vid.loop = true;
-        vid.currentTime = 0;
-        const p = vid.play();
-        if (p) p.catch(() => {});
         if (vid.videoWidth && vid.videoHeight) {
-            evt._overlay = calcOverlayPos(vid.videoWidth, vid.videoHeight);
+            evt._overlay = calcVideoOverlay(vid.videoWidth, vid.videoHeight);
         }
     }
 }
 
-function updateChannel(evt, channelElapsed) {
+function updateChannel(evt, channelElapsed, speedMult) {
     if (!evt._overlay) return;
 
+    const effectiveSpeed = evt.type === 'video_channel'
+        ? Math.min(speedMult, VIDEO_SPEED_CAP)
+        : speedMult;
+
     const sincePhaseStart = channelElapsed - evt._phaseStart;
+    const showDur = (evt._cycleCount === 0 ? CH_FIRST_SHOW : CH_SHOW) / effectiveSpeed;
 
     if (evt._phase === 'show') {
-        if (sincePhaseStart >= evt._showDuration) {
-            // Transition to gap
+        if (sincePhaseStart >= showDur) {
             evt._phase = 'gap';
             evt._phaseStart = channelElapsed;
-            evt._currentGap = evt._gapRange * (0.8 + Math.random() * 0.4); // slight variation
+            const baseGap = CH_GAP_MIN + Math.random() * (CH_GAP_MAX - CH_GAP_MIN);
+            evt._currentGap = baseGap / effectiveSpeed;
         }
     } else if (evt._phase === 'gap') {
         if (sincePhaseStart >= evt._currentGap) {
-            // Advance to next asset
             advanceChannel(evt);
             evt._phase = 'show';
             evt._phaseStart = channelElapsed;
@@ -456,69 +470,161 @@ function drawChannel(ctx, evt) {
     if (evt._phase !== 'show' || !evt._overlay) return;
 
     if (evt.type === 'image_channel') {
-        if (!evt._images || evt._images.length === 0) return;
-        const img = evt._images[evt._currentIdx];
+        if (sharedPreloadedImages.length === 0) return;
+        const img = sharedPreloadedImages[evt._currentIdx];
         if (!img) return;
         const ov = evt._overlay;
-        ctx.drawImage(img, ov.x, ov.y, ov.w, ov.h);
+        ctx.drawImage(img, ov.srcX, ov.srcY, ov.srcW, ov.srcH, ov.x, ov.y, ov.w, ov.h);
     } else if (evt.type === 'video_channel') {
-        if (!evt._videos || evt._videos.length === 0) return;
-        const vid = evt._videos[evt._currentIdx];
+        if (sharedPreloadedVideos.length === 0) return;
+        const vid = sharedPreloadedVideos[evt._currentIdx];
         if (!vid || vid.readyState < 2) return;
         const ov = evt._overlay;
         ctx.drawImage(vid, ov.x, ov.y, ov.w, ov.h);
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BLOCO 7: AUDIO CHANNEL (chained playback until hard cut)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function setupAudioChannel(evt, audioCtx) {
+    if (!evt._audioElements) return;
+
+    // Filter out failed loads
+    evt._validElements = evt._audioElements.filter(Boolean);
+    if (evt._validElements.length === 0) return;
+
+    const now = audioCtx.currentTime;
+    evt._gainNodes = [];
+
+    // Connect each element to Web Audio
+    evt._validElements.forEach((el, i) => {
+        try {
+            const source = audioCtx.createMediaElementSource(el);
+            const gainNode = audioCtx.createGain();
+            gainNode.gain.setValueAtTime(evt.gain, now);
+            source.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            evt._gainNodes.push(gainNode);
+        } catch (e) {
+            console.warn(`Cascata v2: ${evt.subtype}[${i}] setup error`, e.message);
+        }
+    });
+
+    // Chain: event-driven (no gap — fires immediately when audio ends)
+    evt._validElements.forEach((el, i) => {
+        el.addEventListener('ended', () => {
+            if (!isPlaying) return;
+            const nextIdx = (i + 1) % evt._validElements.length;
+            const nextEl = evt._validElements[nextIdx];
+            nextEl.currentTime = 0;
+            nextEl.play().catch(() => {});
+            console.log(`Cascata v2: ${evt.subtype}[${nextIdx}] TOCANDO (chain)`);
+        });
+    });
+
+    evt._audioStarted = false;
+
+    console.log(`Cascata v2: ${evt.subtype} channel setup — ${evt._validElements.length} elementos`);
+}
+
+function startAudioChannel(evt, elapsed, scoreDuration) {
+    if (evt._audioStarted || !evt._validElements || evt._validElements.length === 0) return;
+    evt._audioStarted = true;
+
+    const el = evt._validElements[0];
+    el.currentTime = 0;
+    const p = el.play();
+    if (p) {
+        p.then(() => console.log(`Cascata v2: ${evt.subtype}[0] TOCANDO`))
+         .catch(e => console.error(`Cascata v2: ${evt.subtype} play ERRO`, e.message));
+    }
+
+    // Fade in/out for all audio channels
+    if (evt._gainNodes.length > 0) {
+        const now = audioCtx.currentTime;
+        const remaining = scoreDuration - elapsed;
+
+        // Spectral: 3s fade in, 3s fade out ending 5s before hard cut
+        // Ambient: 2s fade in, 2s fade out ending at hard cut
+        const fadeInDur = evt.subtype === 'spectral' ? 3 : 2;
+        const fadeOutDur = evt.subtype === 'spectral' ? 3 : 2;
+        const endOffset = 0;
+
+        const fadeOutEndFromNow = remaining - endOffset;
+        const fadeOutStartFromNow = fadeOutEndFromNow - fadeOutDur;
+
+        evt._gainNodes.forEach(gn => {
+            gn.gain.cancelScheduledValues(now);
+            // Fade in: 0 → target
+            gn.gain.setValueAtTime(0, now);
+            gn.gain.linearRampToValueAtTime(evt.gain, now + fadeInDur);
+
+            // Fade out (only if there's enough time)
+            if (fadeOutStartFromNow > fadeInDur) {
+                gn.gain.setValueAtTime(evt.gain, now + fadeOutStartFromNow);
+                gn.gain.linearRampToValueAtTime(0, now + fadeOutEndFromNow);
+            }
+        });
+
+        console.log(`Cascata v2: ${evt.subtype} fade — in ${fadeInDur}s, out ${fadeOutDur}s ending ${fadeOutEndFromNow.toFixed(1)}s from now`);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BLOCO 8: PLAYBACK ENGINE
+// ─────────────────────────────────────────────────────────────────────────────
+
+let audioCtx = null;
+let scoreData = null;
+let playbackStart = 0;
+let isPlaying = false;
+let isLoading = false;
+let pulsePhase = 0;        // continuous 0→4 cycle accumulator
+let lastPulseTime = 0;
+let currentPlaybackRate = 1.0;
+let allGainNodes = [];
+
+// Transition state: null → 'waitGrid' → 'hold' → playing
+let transitionState = null;
+let holdStart = 0;
+let pendingScore = null;
+let fadeCells = [];       // dark squares that fade out during hold
+let particleCells = [];   // dark squares that become particles
+
 function startPlayback(score) {
     scoreData = score;
     isPlaying = true;
     currentPlaybackRate = 1.0;
-    gainNodes = [];
+    allGainNodes = [];
 
-    if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // audioCtx already created in startCascata() on user gesture
+    if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
     }
-    if (audioCtx.state === 'suspended') audioCtx.resume();
 
-    const now = audioCtx.currentTime;
+    // Start shared videos (loop, channels pick which to draw)
+    sharedPreloadedVideos.forEach(vid => {
+        vid.loop = true;
+        vid.muted = true;
+        vid.currentTime = Math.random() * (vid.duration || 1);
+        const p = vid.play();
+        if (p) p.catch(e => console.warn('Cascata v2: vid play error', e.message));
+    });
 
-    // Setup audio events - connect to Web Audio but don't play yet
+    // Setup audio channels
     score.events.forEach(evt => {
-        if (evt.type === 'audio_10s' || evt.type === 'audio_spectral') {
-            const el = evt._element;
-            if (!el) return;
-            try {
-                if (!evt._source) {
-                    const source = audioCtx.createMediaElementSource(el);
-                    const gainNode = audioCtx.createGain();
-                    gainNode.gain.setValueAtTime(evt.gain, now); // Start at target gain
-                    source.connect(gainNode);
-                    gainNode.connect(audioCtx.destination);
-                    evt._source = source;
-                    evt._gainNode = gainNode;
-                    gainNodes.push(gainNode);
-                }
-            } catch (e) {
-                console.warn(`Cascata: audio setup error`, e.message);
+        if (evt.type === 'audio_channel') {
+            setupAudioChannel(evt, audioCtx);
+            if (evt._gainNodes) {
+                allGainNodes.push(...evt._gainNodes);
             }
-            el.currentTime = 0;
-            evt._started = false; // Flag to track if we've started playback
-        }
-
-        // Start base video immediately
-        if (evt.type === 'video_base') {
-            const el = evt._element;
-            if (!el) return;
-            el.loop = true;
-            el.currentTime = 0;
-            const p = el.play();
-            if (p) p.catch(() => {});
         }
     });
 
     playbackStart = performance.now();
-    console.log(`Cascata: playback iniciado (${score.duration}s)`);
+    console.log(`Cascata v2: playback iniciado (${score.duration}s)`);
 }
 
 function updatePlayback() {
@@ -531,32 +637,27 @@ function updatePlayback() {
         return;
     }
 
+    // White bg + drifting particles
+    drawCascataBackground(elapsed, scoreData.duration);
+
     const ctx = drawingContext;
-    background(0);
+    const speedMult = getSpeedMultiplier(elapsed, scoreData.duration);
 
     scoreData.events.forEach(evt => {
         if (elapsed < evt.enterAt) return;
 
-        if (evt.type === 'video_base') {
-            if (evt._element) drawVideoFit(ctx, evt._element);
-        } else if (evt.type === 'audio_10s' || evt.type === 'audio_spectral') {
-            // Start audio playback when we reach enterAt
-            if (!evt._started && evt._element) {
-                evt._element.currentTime = 0;
-                const p = evt._element.play();
-                if (p) p.catch(() => {});
-                evt._started = true;
-            }
+        if (evt.type === 'audio_channel') {
+            if (!evt._audioStarted) startAudioChannel(evt, elapsed, scoreData.duration);
+            // Chaining handled by 'ended' event listeners (no polling needed)
         } else if (evt.type === 'image_channel' || evt.type === 'video_channel') {
             const channelElapsed = elapsed - evt.enterAt;
-            // Initialize channel on first frame
             if (evt._phase === undefined) initChannel(evt);
-            updateChannel(evt, channelElapsed);
+            updateChannel(evt, channelElapsed, speedMult);
             drawChannel(ctx, evt);
         }
     });
 
-    // Phase 5: Acceleration
+    // Video acceleration in last phase
     if (elapsed >= scoreData.accelStart) {
         const accelElapsed = elapsed - scoreData.accelStart;
         const accelSteps = Math.floor(accelElapsed / ACCEL_INTERVAL);
@@ -564,52 +665,21 @@ function updatePlayback() {
 
         if (targetRate !== currentPlaybackRate) {
             currentPlaybackRate = targetRate;
-            scoreData.events.forEach(evt => {
-                if (evt.type === 'video_base' && evt._element) {
-                    try { evt._element.playbackRate = currentPlaybackRate; } catch (e) {}
-                }
-                if (evt.type === 'video_channel' && evt._videos) {
-                    evt._videos.forEach(v => {
-                        try { v.playbackRate = currentPlaybackRate; } catch (e) {}
-                    });
-                }
-                if ((evt.type === 'audio_10s' || evt.type === 'audio_spectral') && evt._element) {
-                    try { evt._element.playbackRate = currentPlaybackRate; } catch (e) {}
-                }
+            sharedPreloadedVideos.forEach(v => {
+                try { v.playbackRate = currentPlaybackRate; } catch (e) {}
             });
         }
     }
 }
 
-function drawVideoFit(ctx, videoEl) {
-    if (!videoEl || videoEl.readyState < 2) return;
-    const vw = videoEl.videoWidth;
-    const vh = videoEl.videoHeight;
-    if (vw === 0 || vh === 0) return;
-
-    const videoAspect = vw / vh;
-    const canvasAspect = width / height;
-    let dw, dh, ox, oy;
-
-    if (canvasAspect > videoAspect) {
-        dh = height;
-        dw = dh * videoAspect;
-    } else {
-        dw = width;
-        dh = dw / videoAspect;
-    }
-    ox = (width - dw) / 2;
-    oy = (height - dh) / 2;
-    ctx.drawImage(videoEl, ox, oy, dw, dh);
-}
-
 function hardCut() {
     isPlaying = false;
-    console.log('Cascata: CORTE SECO');
+    console.log('Cascata v2: CORTE SECO');
 
+    // Silence all audio instantly
     if (audioCtx) {
         const now = audioCtx.currentTime;
-        gainNodes.forEach(g => {
+        allGainNodes.forEach(g => {
             try {
                 g.gain.cancelScheduledValues(now);
                 g.gain.setValueAtTime(0, now);
@@ -617,25 +687,28 @@ function hardCut() {
         });
     }
 
+    // Pause all audio elements
     if (scoreData) {
         scoreData.events.forEach(evt => {
-            if (evt._element) {
-                try { if (evt._element.pause) evt._element.pause(); } catch (e) {}
-            }
-            if (evt._videos) {
-                evt._videos.forEach(v => {
-                    try { v.pause(); } catch (e) {}
+            if (evt.type === 'audio_channel' && evt._validElements) {
+                evt._validElements.forEach(el => {
+                    try { el.pause(); } catch (e) {}
                 });
             }
         });
     }
 
-    background(0);
+    // Pause shared videos
+    sharedPreloadedVideos.forEach(v => {
+        try { v.pause(); } catch (e) {}
+    });
+
+    drawGrid();
     showButton();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BLOCO 5: UI CONTROLLER
+// BLOCO 9: UI CONTROLLER
 // ─────────────────────────────────────────────────────────────────────────────
 
 let cascataButton;
@@ -679,64 +752,267 @@ function updateProgress(loaded, total) {
 function cleanup() {
     if (scoreData) {
         scoreData.events.forEach(evt => {
-            // Clean audio elements
-            if (evt._element && evt._element.parentNode) {
-                try {
-                    if (evt._element.pause) evt._element.pause();
-                    evt._element.removeAttribute('src');
-                } catch (e) {}
-                evt._element.parentNode.removeChild(evt._element);
+            // Cleanup audio channel elements
+            if (evt.type === 'audio_channel') {
+                if (evt._validElements) {
+                    evt._validElements.forEach(el => {
+                        if (el.parentNode) {
+                            try { el.pause(); el.removeAttribute('src'); } catch (e) {}
+                            el.parentNode.removeChild(el);
+                        }
+                    });
+                }
+                evt._audioElements = null;
+                evt._validElements = null;
+                evt._gainNodes = null;
+                evt._audioStarted = false;
             }
-            // Clean video channel elements
-            if (evt._videos) {
-                evt._videos.forEach(v => {
-                    try { v.pause(); v.removeAttribute('src'); } catch (e) {}
-                    if (v.parentNode) v.parentNode.removeChild(v);
-                });
-            }
-            evt._element = null;
-            evt._source = null;
-            evt._gainNode = null;
-            evt._images = null;
-            evt._videos = null;
             evt._phase = undefined;
             evt._overlay = null;
         });
     }
 
-    // Also clean any leftover hidden video/audio elements from preloading
+    // Cleanup shared videos
+    sharedPreloadedVideos.forEach(v => {
+        try { v.pause(); v.removeAttribute('src'); } catch (e) {}
+        if (v.parentNode) v.parentNode.removeChild(v);
+    });
+    sharedPreloadedImages = [];
+    sharedPreloadedVideos = [];
+
+    // Cleanup orphaned elements
     document.querySelectorAll('video[style*="display: none"], audio[style*="display: none"]').forEach(el => {
         try { el.pause(); el.removeAttribute('src'); } catch (e) {}
         if (el.parentNode) el.parentNode.removeChild(el);
     });
 
     scoreData = null;
-    gainNodes = [];
+    allGainNodes = [];
 
-    if (audioCtx) {
-        try { audioCtx.close(); } catch (e) {}
-        audioCtx = null;
-    }
+    // NOTE: audioCtx NOT closed — reused across cascatas
+    particles = [];
+    particlesInitialized = false;
+    fadeCells = [];
+    particleCells = [];
+    transitionState = null;
+    pendingScore = null;
 }
 
 async function startCascata() {
     if (!dataLoaded) {
-        console.warn('Cascata: dados ainda carregando');
+        console.warn('Cascata v2: dados ainda carregando');
         return;
     }
 
     hideButton();
     cleanup();
 
+    // AudioContext on user gesture (before async preload)
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        console.log('Cascata v2: AudioContext criado no click');
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume().then(() => console.log('Cascata v2: AudioContext resumed'));
+    }
+
     const score = generateScore();
 
     showProgress();
+    isLoading = true;
+    pulsePhase = 0;
+    lastPulseTime = 0;
     await preloadScore(score, (loaded, total) => {
         updateProgress(loaded, total);
     });
 
+    isLoading = false;
     hideProgress();
-    startPlayback(score);
+    pendingScore = score;
+    transitionState = 'waitGrid';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BLOCO 10: CHECKERBOARD GRID + PARTICLES
+// ─────────────────────────────────────────────────────────────────────────────
+
+let gridBuffer = null;
+let particles = [];
+let particlesInitialized = false;
+
+function buildGridBuffer(w, h) {
+    gridBuffer = createGraphics(w, h);
+    gridBuffer.noStroke();
+    const cols = Math.ceil(w / GRID_CELL);
+    const rows = Math.ceil(h / GRID_CELL);
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const clr = (r + c) % 2 === 0 ? GRID_COLOR_A : GRID_COLOR_B;
+            gridBuffer.fill(clr[0], clr[1], clr[2]);
+            gridBuffer.rect(c * GRID_CELL, r * GRID_CELL, GRID_CELL, GRID_CELL);
+        }
+    }
+}
+
+function prepareTransition(w, h) {
+    fadeCells = [];
+    particleCells = [];
+    const darkCells = [];
+    const cols = Math.ceil(w / GRID_CELL);
+    const rows = Math.ceil(h / GRID_CELL);
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if ((r + c) % 2 !== 0) {
+                darkCells.push({ x: c * GRID_CELL, y: r * GRID_CELL });
+            }
+        }
+    }
+    // Fisher-Yates shuffle for uniform distribution without visible stripes
+    for (let i = darkCells.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [darkCells[i], darkCells[j]] = [darkCells[j], darkCells[i]];
+    }
+    const half = Math.floor(darkCells.length / 2);
+    particleCells = darkCells.slice(0, half);
+    fadeCells = darkCells.slice(half);
+}
+
+function initParticlesFromCells() {
+    particles = [];
+    for (let i = 0; i < particleCells.length; i++) {
+        const cell = particleCells[i];
+        const angle = Math.random() * Math.PI * 2;
+        const baseSpeed = 8 + Math.random() * 24;
+        particles.push({
+            x: cell.x,
+            y: cell.y,
+            vx: Math.cos(angle) * baseSpeed,
+            vy: Math.sin(angle) * baseSpeed
+        });
+    }
+    particlesInitialized = true;
+}
+
+function drawHoldPhase(holdElapsed) {
+    if (holdElapsed < 1.0) {
+        // Phase 1 (0-1s): static grid, no changes
+        drawGrid();
+    } else {
+        // Phase 2 (1-2s): grid fades + particles drift simultaneously
+        const fadeProg = Math.min((holdElapsed - 1.0) / 1.0, 1); // 0→1 over 1s
+
+        // Init particles at start of fade (once)
+        if (!particlesInitialized) initParticlesFromCells();
+
+        background(255);
+
+        // Fade entire grid
+        if (gridBuffer) {
+            const ctx = drawingContext;
+            ctx.globalAlpha = 1 - fadeProg;
+            ctx.drawImage(gridBuffer.canvas || gridBuffer.elt, 0, 0);
+            ctx.globalAlpha = 1.0;
+        }
+
+        // Particles: drift slowly during fade (speed ramps with fadeProg)
+        const dt = 1 / 60;
+        const holdSpeed = 0.5 + fadeProg * 1.5; // 0.5x → 2x during fade
+        updateAndDrawParticles(drawingContext, dt, holdSpeed);
+    }
+}
+
+function updateAndDrawParticles(ctx, dt, speedMult) {
+    const clr = GRID_COLOR_B;
+    ctx.fillStyle = `rgb(${clr[0]}, ${clr[1]}, ${clr[2]})`;
+
+    const speed = speedMult * dt;
+    const w = width;
+    const h = height;
+    const cell = GRID_CELL;
+
+    for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx * speed;
+        p.y += p.vy * speed;
+
+        // Wrap around edges
+        if (p.x < -cell) p.x += w + cell;
+        else if (p.x > w) p.x -= w + cell;
+        if (p.y < -cell) p.y += h + cell;
+        else if (p.y > h) p.y -= h + cell;
+
+        ctx.fillRect(p.x, p.y, cell, cell);
+    }
+}
+
+function drawGrid() {
+    if (gridBuffer) image(gridBuffer, 0, 0);
+}
+
+// Loading: grid ↔ white ↔ grid ↔ light gray (smooth sine dissolve)
+function drawLoadingPulse() {
+    drawGrid();
+
+    const phase = pulsePhase % 4;
+    let alpha;
+    if (phase < 2) {
+        alpha = Math.sin(Math.PI * phase / 2);
+        drawingContext.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+    } else {
+        alpha = Math.sin(Math.PI * (phase - 2) / 2);
+        drawingContext.fillStyle = `rgba(220, 220, 220, ${alpha})`;
+    }
+    drawingContext.fillRect(0, 0, width, height);
+}
+
+// Cascata: white bg + gray particles drifting
+function drawCascataBackground(elapsed, duration) {
+    background(255);
+
+    if (!particlesInitialized) initParticlesFromCells();
+
+    const dt = 1 / 60;
+    const speedMult = getSpeedMultiplier(elapsed, duration);
+    updateAndDrawParticles(drawingContext, dt, speedMult);
+}
+
+function advancePulse(intervalSec) {
+    const now = performance.now();
+    if (lastPulseTime > 0) {
+        const dt = (now - lastPulseTime) / 1000;
+        pulsePhase += dt / intervalSec;
+    }
+    lastPulseTime = now;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BLOCO 11: CANVAS 16:9 SIZING
+// ─────────────────────────────────────────────────────────────────────────────
+
+function calc16x9(viewportFraction) {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const maxW = vw * viewportFraction;
+    const maxH = vh * viewportFraction;
+
+    let w = maxW;
+    let h = w * 9 / 16;
+
+    if (h > maxH) {
+        h = maxH;
+        w = h * 16 / 9;
+    }
+
+    return { w: Math.floor(w), h: Math.floor(h) };
+}
+
+function applyCanvasSize() {
+    const { w, h } = calc16x9(0.85);
+    const container = document.getElementById('p5-container');
+    container.style.width = w + 'px';
+    container.style.height = h + 'px';
+    resizeCanvas(w, h);
+    buildGridBuffer(w, h);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -744,9 +1020,17 @@ async function startCascata() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function setup() {
+    const { w, h } = calc16x9(0.85);
     const container = document.getElementById('p5-container');
-    createCanvas(container.clientWidth, container.clientHeight);
-    background(0);
+    container.style.width = w + 'px';
+    container.style.height = h + 'px';
+
+    const cnv = createCanvas(w, h);
+    cnv.parent('p5-container');
+
+    buildGridBuffer(w, h);
+    drawGrid();
+
     initUI();
     loadData();
 }
@@ -754,10 +1038,30 @@ function setup() {
 function draw() {
     if (isPlaying) {
         updatePlayback();
+    } else if (transitionState === 'waitGrid') {
+        advancePulse(PULSE_LOADING);
+        drawLoadingPulse();
+        // Wait for pulse to reach grid state (alpha ≈ 0)
+        const phase = pulsePhase % 2;
+        if (phase < 0.03 && pulsePhase > 0.5) {
+            transitionState = 'hold';
+            holdStart = performance.now();
+            prepareTransition(width, height);
+        }
+    } else if (transitionState === 'hold') {
+        const holdElapsed = (performance.now() - holdStart) / 1000;
+        drawHoldPhase(holdElapsed);
+        if (holdElapsed >= 2.0) {
+            transitionState = null;
+            startPlayback(pendingScore);
+        }
+    } else if (isLoading) {
+        advancePulse(PULSE_LOADING);
+        drawLoadingPulse();
     }
 }
 
 function windowResized() {
-    const container = document.getElementById('p5-container');
-    resizeCanvas(container.clientWidth, container.clientHeight);
+    applyCanvasSize();
+    if (!isPlaying) drawGrid();
 }
