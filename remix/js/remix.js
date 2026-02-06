@@ -162,10 +162,10 @@ async function loadMaterials() {
             );
         } else {
             // Carregar do Supabase via REST API
+            // Inclui legacy (só vídeo/imagem) - áudio é filtrado depois no JS
             const query = new URLSearchParams({
-                'tipo': 'in.(sonhos,prospeccoes)',
+                'tipo': 'in.(sonhos,prospeccoes,legacy)',
                 'video_url': 'not.is.null',
-                'audio_10s_url': 'not.is.null',
                 'select': 'external_id,tipo,video_url,audio_10s_url,audio_espectral_url,imagem_url,texto_url'
             });
 

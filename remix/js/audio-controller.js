@@ -208,9 +208,16 @@ function stopAudioLayer() {
 // CAMADA 2: LOAD + CROSSFADE
 // ═══════════════════════════════════════════════════════════════════════════════
 
+function getRandomMaterialWithAudio() {
+    // Filtra apenas materiais que têm áudio 10s (exclui legacy sem áudio)
+    const withAudio = materialsData.filter(m => m.audio_10s_path);
+    if (withAudio.length === 0) return null;
+    return withAudio[Math.floor(Math.random() * withAudio.length)];
+}
+
 function loadAudioSlot(slot, onReady) {
-    const material = getRandomMaterial();
-    if (!material || !material.audio_10s_path) return;
+    const material = getRandomMaterialWithAudio();
+    if (!material) return;
 
     const audioPath = getMediaPath(material.audio_10s_path);
     console.log(`🔊 Áudio ${slot.label}: ${material.id}`);
