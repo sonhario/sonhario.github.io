@@ -114,6 +114,11 @@ html, body {
     height: 3vmin;
 }
 
+/* Icon toggle: expand visible normally, shrink in fullscreen */
+.fullscreen-btn .icon-shrink {
+    display: none;
+}
+
 .fullscreen-btn.hidden {
     opacity: 0;
     pointer-events: none;
@@ -124,7 +129,7 @@ html, body {
     color: rgba(255, 255, 255, 0.7);
 }
 
-/* Fullscreen mode — hide nav, reposition fullscreen btn */
+/* Fullscreen mode */
 :fullscreen .remix-nav,
 :-webkit-full-screen .remix-nav {
     display: none;
@@ -132,6 +137,23 @@ html, body {
 
 :fullscreen .fullscreen-btn,
 :-webkit-full-screen .fullscreen-btn {
-    bottom: 1vmin;
-    right: 1vmin;
+    bottom: 2vmin;
+    right: 2vmin;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+:fullscreen .fullscreen-btn:hover,
+:-webkit-full-screen .fullscreen-btn:hover {
+    opacity: 1;
+}
+
+:fullscreen .fullscreen-btn .icon-expand,
+:-webkit-full-screen .fullscreen-btn .icon-expand {
+    display: none;
+}
+
+:fullscreen .fullscreen-btn .icon-shrink,
+:-webkit-full-screen .fullscreen-btn .icon-shrink {
+    display: block;
 }
