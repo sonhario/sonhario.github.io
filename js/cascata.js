@@ -19,7 +19,7 @@ const DURATIONS = [20, 22, 24, 25, 26];
 
 // Responsive grid: solid bg + dark cells only
 const GRID_DENSITY = 45;              // target cells on minor axis
-const GRID_BG = [30, 34, 52];         // canvas background (slightly lighter than page)
+const GRID_BG = [232, 234, 240];      // canvas background (near-white, slight blue tint)
 const GRID_CELL_COLOR = [26, 29, 46]; // cell color (same as page bg #1a1d2e)
 
 // Pulse timing (seconds per phase)
@@ -946,7 +946,7 @@ function updateAndDrawParticles(ctx, dt, speedMult) {
     }
 }
 
-// Loading pulse: grid breathes with subtle brightness variation
+// Loading pulse: grid breathes (light bg → white → light bg → gray)
 function drawLoadingPulse() {
     background(GRID_BG[0], GRID_BG[1], GRID_BG[2]);
     drawGrid();
@@ -954,11 +954,13 @@ function drawLoadingPulse() {
     const phase = pulsePhase % 4;
     let alpha;
     if (phase < 2) {
-        alpha = Math.sin(Math.PI * phase / 2) * 0.12;
-        drawingContext.fillStyle = `rgba(60, 65, 85, ${alpha})`;
+        // Brighten toward white
+        alpha = Math.sin(Math.PI * phase / 2) * 0.35;
+        drawingContext.fillStyle = `rgba(255, 255, 255, ${alpha})`;
     } else {
-        alpha = Math.sin(Math.PI * (phase - 2) / 2) * 0.08;
-        drawingContext.fillStyle = `rgba(10, 12, 20, ${alpha})`;
+        // Darken slightly toward gray
+        alpha = Math.sin(Math.PI * (phase - 2) / 2) * 0.15;
+        drawingContext.fillStyle = `rgba(180, 185, 200, ${alpha})`;
     }
     drawingContext.fillRect(0, 0, width, height);
 }
