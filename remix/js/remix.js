@@ -380,8 +380,11 @@ function loadVideoInto(videoEl, material, isFront) {
         loadVideoInto(videoEl, getRandomMaterial(), isFront);
     };
 
-    const p = videoEl.play();
-    if (p) p.catch(e => console.error('❌ Play:', e.message));
+    // Só toca imediatamente se for front — back apenas pré-carrega
+    if (isFront) {
+        const p = videoEl.play();
+        if (p) p.catch(e => console.error('❌ Play:', e.message));
+    }
 }
 
 /**
@@ -417,6 +420,11 @@ function doVideoSwap() {
     const oldFront = frontVideo;
     frontVideo = backVideo;
     backVideo = oldFront;
+
+    // Novo front: começar do início e tocar
+    frontVideo.currentTime = 0;
+    const p = frontVideo.play();
+    if (p) p.catch(e => console.error('❌ Play swap:', e.message));
 
     // Limpar antigo front (agora back) para reutilização
     backVideo.oncanplaythrough = null;
