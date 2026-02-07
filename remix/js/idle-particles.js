@@ -150,7 +150,7 @@ function updateIdleParticles() {
                 const coreR = coreBase * pulse;
 
                 if (dist < coreR * 2.5) {
-                    const repel = 0.5 * (1 - dist / (coreR * 2.5));
+                    const repel = 0.25 * (1 - dist / (coreR * 2.5));
                     p.vx -= (dx / dist) * repel;
                     p.vy -= (dy / dist) * repel;
                 }
