@@ -51,11 +51,12 @@
         }
 
         .relato {
-            border: 1px solid var(--color-border);
-            border-radius: 6px;
+            border: none;
+            border-radius: 0;
             padding: var(--space-lg);
             margin-bottom: var(--space-lg);
-            background: white;
+            background: #1a1d2e;
+            color: rgba(255, 255, 255, 0.85);
         }
 
         .relato-tipo {
@@ -65,8 +66,8 @@
             letter-spacing: 0.05em;
             padding: 2px 8px;
             border-radius: 3px;
-            background: var(--color-bg-alt);
-            color: var(--color-text-muted);
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.5);
             margin-bottom: var(--space-md);
         }
 
@@ -75,6 +76,7 @@
             line-height: 1.8;
             white-space: pre-wrap;
             margin-bottom: var(--space-md);
+            color: rgba(255, 255, 255, 0.8);
         }
 
         .relato-texto.truncated {
@@ -90,13 +92,13 @@
             left: 0;
             right: 0;
             height: 60px;
-            background: linear-gradient(transparent, white);
+            background: linear-gradient(transparent, #1a1d2e);
         }
 
         .btn-expandir {
             background: none;
             border: none;
-            color: var(--color-text-muted);
+            color: rgba(255, 255, 255, 0.4);
             font-size: var(--font-size-sm);
             cursor: pointer;
             padding: 0;
@@ -104,7 +106,7 @@
         }
 
         .btn-expandir:hover {
-            color: var(--color-text);
+            color: rgba(255, 255, 255, 0.8);
             background: none;
             border: none;
         }
@@ -116,7 +118,7 @@
         .relato-media video {
             width: 100%;
             max-height: 400px;
-            border-radius: 4px;
+            border-radius: 0;
             background: #000;
             margin-bottom: var(--space-sm);
             pointer-events: none;
@@ -132,13 +134,13 @@
 
         .audio-play-btn {
             background: none;
-            border: 1px solid var(--color-border);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 50%;
             width: 36px;
             height: 36px;
             font-size: 14px;
             cursor: pointer;
-            color: var(--color-text);
+            color: rgba(255, 255, 255, 0.7);
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -146,20 +148,20 @@
         }
 
         .audio-play-btn:hover {
-            background: var(--color-bg-alt);
-            border-color: var(--color-text);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.5);
         }
 
         .relato-media img {
             max-width: 100%;
-            border-radius: 4px;
+            border-radius: 0;
             display: block;
         }
 
         .relato-media label {
             display: block;
             font-size: var(--font-size-xs);
-            color: var(--color-text-muted);
+            color: rgba(255, 255, 255, 0.35);
             margin-bottom: 4px;
         }
 
