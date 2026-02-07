@@ -162,7 +162,10 @@ function triggerLayerOverlay(L) {
         if (doCrop) {
             // 85%: crop 20-80% da imagem, aspect ratio aleatório
             const cropFraction = 0.2 + Math.random() * 0.6;
-            const cropAspect = 0.25 + Math.random() * 5.75; // 0.25 (vertical 1:4) a 6.0 (horizontal 6:1)
+            // Evita crops quadrados: 50% vertical (0.15-0.70), 50% horizontal (1.45-6.5)
+            const cropAspect = Math.random() < 0.5
+                ? 0.15 + Math.random() * 0.55   // vertical
+                : 1.45 + Math.random() * 5.05;  // horizontal
             let cw = iw * cropFraction;
             let ch = cw / cropAspect;
             if (ch > ih * cropFraction) {
