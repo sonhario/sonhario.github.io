@@ -12,6 +12,9 @@
 
 let audioCtx = null;
 let audioLayerActive = false;
+let masterGain = null;         // GainNode master de saída (volume slider)
+let masterMuted = false;
+let masterVolumeBeforeMute = 1;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CAMADA 2: ÁUDIO AMBIENTE COM CROSSFADE
@@ -102,10 +105,15 @@ function recoverAudioState() {
 function initAudio() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
+    // Master output gain (volume slider / mute)
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 1;
+    masterGain.connect(audioCtx.destination);
+
     // Master gain da camada 2 (permite duck global)
     layer2Master = audioCtx.createGain();
     layer2Master.gain.value = 1;
-    layer2Master.connect(audioCtx.destination);
+    layer2Master.connect(masterGain);
 
     // Slots A/B da camada 2
     slotA = createAudioSlot('A');
@@ -123,7 +131,7 @@ function initAudio() {
     spectralGain = audioCtx.createGain();
     spectralGain.gain.value = 0;
     spectralSource.connect(spectralGain);
-    spectralGain.connect(audioCtx.destination);
+    spectralGain.connect(masterGain);
 
     // Handler persistente para quando o áudio spectral termina
     // (evita adicionar múltiplos listeners)
@@ -408,4 +416,38 @@ function endSpectralAppearance() {
         spectralState = 'idle';
         scheduleNextSpectral();
     }, SPECTRAL_FADE * 1000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MASTER VOLUME (público — chamado pela UI)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function setMasterVolume(value) {
+    if (!masterGain) return;
+    masterGain.gain.setValueAtTime(value, audioCtx.currentTime);
+    if (value > 0) {
+        masterMuted = false;
+        masterVolumeBeforeMute = value;
+    }
+}
+
+function toggleMasterMute() {
+    if (!masterGain) return;
+    if (masterMuted) {
+        masterGain.gain.setValueAtTime(masterVolumeBeforeMute, audioCtx.currentTime);
+        masterMuted = false;
+    } else {
+        masterVolumeBeforeMute = masterGain.gain.value;
+        masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
+        masterMuted = true;
+    }
+    return masterMuted;
+}
+
+function getMasterVolume() {
+    return masterMuted ? 0 : (masterGain ? masterGain.gain.value : 1);
+}
+
+function isMasterMuted() {
+    return masterMuted;
 }

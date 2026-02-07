@@ -96,6 +96,105 @@ html, body {
     transition: all 0.3s ease;
 }
 
+/* Volume Control — inside #p5-container, left of fullscreen btn */
+.volume-control {
+    position: absolute;
+    bottom: 1.5vmin;
+    right: 6vmin;
+    z-index: 150;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.volume-control.hidden {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+}
+
+.volume-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.25);
+    cursor: pointer;
+    padding: 0.8vmin;
+    transition: color 0.3s ease;
+    line-height: 0;
+}
+
+.volume-btn svg {
+    width: 3vmin;
+    height: 3vmin;
+}
+
+.volume-btn:hover {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.volume-btn .icon-vol-off {
+    display: none;
+}
+
+.volume-btn.muted .icon-vol-on {
+    display: none;
+}
+
+.volume-btn.muted .icon-vol-off {
+    display: block;
+}
+
+/* Slider — hidden by default, appears on hover over volume-control */
+.volume-slider-wrap {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    padding-bottom: 0.5vmin;
+}
+
+.volume-control:hover .volume-slider-wrap {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+#volume-slider {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 3vmin;
+    height: 12vmin;
+    background: transparent;
+    cursor: pointer;
+}
+
+#volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 1.2vmin;
+    height: 1.2vmin;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+#volume-slider::-webkit-slider-runnable-track {
+    width: 0.3vmin;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 0.15vmin;
+}
+
+/* Fullscreen mode — volume control */
+#p5-container:fullscreen .volume-control,
+#p5-container:-webkit-full-screen .volume-control {
+    bottom: 2vmin;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#p5-container:fullscreen .volume-control:hover,
+#p5-container:-webkit-full-screen .volume-control:hover {
+    opacity: 1;
+}
+
 /* Fullscreen Button — inside #p5-container */
 .fullscreen-btn {
     position: absolute;

@@ -82,6 +82,19 @@ function setup() {
     document.addEventListener('fullscreenchange', () => applyCanvasSize());
     document.addEventListener('webkitfullscreenchange', () => applyCanvasSize());
 
+    // Volume control
+    const volumeSlider = document.getElementById('volume-slider');
+    const volumeBtn = document.getElementById('volume-btn');
+    volumeSlider.addEventListener('input', () => {
+        setMasterVolume(volumeSlider.value / 100);
+        volumeBtn.classList.toggle('muted', volumeSlider.value === '0');
+    });
+    volumeBtn.addEventListener('click', () => {
+        const muted = toggleMasterMute();
+        volumeBtn.classList.toggle('muted', muted);
+        volumeSlider.value = muted ? 0 : masterVolumeBeforeMute * 100;
+    });
+
     // Position fullscreen btn relative to canvas
     applyCanvasSize();
 
@@ -273,6 +286,7 @@ function startPlayback() {
     backVideoReady = false;
     playButton.classList.add('hidden');
     document.getElementById('fullscreen-btn').classList.remove('hidden');
+    document.getElementById('volume-control').classList.remove('hidden');
 
     console.log('▶️ Iniciando playback...');
 
@@ -290,6 +304,7 @@ function pausePlayback() {
     isPlaying = false;
     playButton.classList.remove('hidden');
     document.getElementById('fullscreen-btn').classList.add('hidden');
+    document.getElementById('volume-control').classList.add('hidden');
 
     console.log('⏸️ Pausando playback...');
 
