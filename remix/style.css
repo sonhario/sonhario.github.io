@@ -56,8 +56,8 @@ html, body {
     transform: translate(-50%, -50%);
     z-index: 100;
 
-    width: 12vmin;
-    height: 12vmin;
+    width: 10vmin;
+    height: 10vmin;
     background: #1a1d2e;
     border: none;
     border-radius: 50%;
