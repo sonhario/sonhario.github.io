@@ -105,7 +105,7 @@ function createRelatoCard(m) {
     // Tipo tag
     const tipo = document.createElement('span');
     tipo.className = 'relato-tipo';
-    tipo.textContent = TIPO_LABELS[m.tipo] || m.tipo;
+    tipo.textContent = '[' + (TIPO_LABELS[m.tipo] || m.tipo).toUpperCase() + ']';
     card.appendChild(tipo);
 
     // Texto
