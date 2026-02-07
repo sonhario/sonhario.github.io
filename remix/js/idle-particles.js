@@ -77,14 +77,14 @@ function createIdleParticle() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function initIdleParticles(materialCount) {
-    const count = Math.min(IDLE_BASE + materialCount, IDLE_CAP);
-    idleParticles = [];
-    for (let i = 0; i < count; i++) {
+    const target = Math.min(IDLE_BASE + materialCount, IDLE_CAP);
+    // Adiciona partículas sem recriar as existentes
+    while (idleParticles.length < target) {
         idleParticles.push(createIdleParticle());
     }
     idleActive = true;
     idleFading = false;
-    console.log(`✨ ${count} partículas idle (${IDLE_BASE} base + ${materialCount} materiais)`);
+    console.log(`✨ ${idleParticles.length} partículas idle (${IDLE_BASE} base + ${materialCount} materiais)`);
 }
 
 function fadeOutIdleParticles() {
