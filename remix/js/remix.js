@@ -36,7 +36,6 @@ function calc16x9(fraction) {
 function applyCanvasSize() {
     const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
     const container = document.getElementById('p5-container');
-    const fsBtn = document.getElementById('fullscreen-btn');
 
     if (isFS) {
         const w = window.innerWidth;
@@ -44,18 +43,11 @@ function applyCanvasSize() {
         container.style.width = w + 'px';
         container.style.height = h + 'px';
         resizeCanvas(w, h);
-        // Position fullscreen btn at bottom-right of screen
-        fsBtn.style.bottom = '1vmin';
-        fsBtn.style.right = '1vmin';
     } else {
         const { w, h } = calc16x9(0.85);
         container.style.width = w + 'px';
         container.style.height = h + 'px';
         resizeCanvas(w, h);
-        // Position fullscreen btn at bottom-right of canvas
-        const rect = container.getBoundingClientRect();
-        fsBtn.style.bottom = (window.innerHeight - rect.bottom + 12) + 'px';
-        fsBtn.style.right = (window.innerWidth - rect.right + 12) + 'px';
     }
 }
 

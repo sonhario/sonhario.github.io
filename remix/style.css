@@ -96,16 +96,18 @@ html, body {
     transition: all 0.3s ease;
 }
 
-/* Fullscreen Button */
+/* Fullscreen Button — inside #p5-container */
 .fullscreen-btn {
-    position: fixed;
+    position: absolute;
+    bottom: 1.5vmin;
+    right: 1.5vmin;
     z-index: 150;
     background: none;
     border: none;
     color: rgba(255, 255, 255, 0.25);
     cursor: pointer;
     padding: 0.8vmin;
-    transition: color 0.3s ease;
+    transition: color 0.3s ease, opacity 0.3s ease;
     line-height: 0;
 }
 
@@ -135,25 +137,24 @@ html, body {
     display: none;
 }
 
-:fullscreen .fullscreen-btn,
-:-webkit-full-screen .fullscreen-btn {
+#p5-container:fullscreen .fullscreen-btn,
+#p5-container:-webkit-full-screen .fullscreen-btn {
     bottom: 2vmin;
     right: 2vmin;
     opacity: 0;
-    transition: opacity 0.3s ease;
 }
 
-:fullscreen .fullscreen-btn:hover,
-:-webkit-full-screen .fullscreen-btn:hover {
+#p5-container:fullscreen .fullscreen-btn:hover,
+#p5-container:-webkit-full-screen .fullscreen-btn:hover {
     opacity: 1;
 }
 
-:fullscreen .fullscreen-btn .icon-expand,
-:-webkit-full-screen .fullscreen-btn .icon-expand {
+#p5-container:fullscreen .fullscreen-btn .icon-expand,
+#p5-container:-webkit-full-screen .fullscreen-btn .icon-expand {
     display: none;
 }
 
-:fullscreen .fullscreen-btn .icon-shrink,
-:-webkit-full-screen .fullscreen-btn .icon-shrink {
+#p5-container:fullscreen .fullscreen-btn .icon-shrink,
+#p5-container:-webkit-full-screen .fullscreen-btn .icon-shrink {
     display: block;
 }
