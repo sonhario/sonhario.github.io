@@ -78,7 +78,10 @@ function setup() {
     playButton.addEventListener('mousedown', () => spinIdleParticles());
     playButton.addEventListener('mouseup', togglePlayPause);
     playButton.addEventListener('mouseenter', () => { playBtnHovered = true; });
-    playButton.addEventListener('mouseleave', () => { playBtnHovered = false; });
+    playButton.addEventListener('mouseleave', () => {
+        playBtnHovered = false;
+        if (!isPlaying) { idleSpinning = false; }
+    });
 
     // Fullscreen button
     document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen);
