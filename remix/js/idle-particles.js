@@ -138,28 +138,17 @@ function updateIdleParticles() {
             const coreBase = minSide * 0.07;
 
             if (dist > 1) {
-                // Hard safe-zone: clamp position outside button area
-                const safeR = coreBase * 1.4;
-                if (dist < safeR) {
-                    p.x = cx - (dx / dist) * safeR;
-                    p.y = cy - (dy / dist) * safeR;
-                    // Kill inward velocity, keep tangential
-                    const dot = (p.vx * dx + p.vy * dy) / (dist * dist);
-                    if (dot < 0) {
-                        p.vx -= dx * dot * 0.8;
-                        p.vy -= dy * dot * 0.8;
-                    }
-                }
-
                 // Attract toward center (strong, noticeable quickly)
                 const attr = 0.12 * Math.min(dist / minSide, 1);
                 p.vx += (dx / dist) * attr;
                 p.vy += (dy / dist) * attr;
 
                 // Pulsating repulsion: radius varies by angle + time
+                // Floor at 0.7 so repulsion never drops below 70% of base
                 const angle = Math.atan2(dy, dx);
-                const pulse = 1 + 0.6 * Math.sin(angle * 3 + t * 1.8)
-                                + 0.3 * Math.sin(angle * 5 - t * 2.5);
+                const pulse = Math.max(0.7,
+                    1 + 0.6 * Math.sin(angle * 3 + t * 1.8)
+                      + 0.3 * Math.sin(angle * 5 - t * 2.5));
                 const coreR = coreBase * pulse;
 
                 if (dist < coreR * 2.5) {
