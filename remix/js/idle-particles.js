@@ -127,7 +127,7 @@ function updateIdleParticles() {
         p.vx += nx * 0.015;
         p.vy += ny * 0.015;
 
-        // Play button hover: attract + repel core = ondulação
+        // Play button hover: attract + pulsating repel = ondulação
         if (playBtnHovered) {
             const cx = width / 2;
             const cy = height / 2;
@@ -135,15 +135,20 @@ function updateIdleParticles() {
             const dy = cy - p.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             const minSide = Math.min(width, height);
-            const coreR = minSide * 0.07;
+            const coreBase = minSide * 0.07;
 
             if (dist > 1) {
-                // Attract toward center
-                const attr = 0.03 * Math.min(dist / minSide, 1);
+                // Attract toward center (strong, noticeable quickly)
+                const attr = 0.12 * Math.min(dist / minSide, 1);
                 p.vx += (dx / dist) * attr;
                 p.vy += (dy / dist) * attr;
 
-                // Repel from core (play button area)
+                // Pulsating repulsion: radius varies by angle + time
+                const angle = Math.atan2(dy, dx);
+                const pulse = 1 + 0.6 * Math.sin(angle * 3 + t * 1.8)
+                                + 0.3 * Math.sin(angle * 5 - t * 2.5);
+                const coreR = coreBase * pulse;
+
                 if (dist < coreR * 2.5) {
                     const repel = 0.5 * (1 - dist / (coreR * 2.5));
                     p.vx -= (dx / dist) * repel;
