@@ -7,18 +7,14 @@
     <link rel="stylesheet" href="../css/global.css">
     <style>
         .control-row {
-            display: inline-flex;
+            display: flex;
             align-items: stretch;
             margin-bottom: var(--space-xl);
             border: 1px solid #1a1d2e;
         }
 
-        /* Center the control-row within its parent */
-        .control-row-wrap {
-            text-align: center;
-        }
-
         #show-btn {
+            flex: 1;
             font-size: var(--font-size-base);
             padding: var(--space-md) var(--space-xl);
             border-radius: 0;
@@ -26,6 +22,7 @@
             border: none;
             color: white;
             cursor: pointer;
+            text-align: left;
         }
 
         #show-btn:hover {
@@ -239,9 +236,9 @@
 
     <main>
         <section class="container" style="padding-top: var(--space-xl);">
-            <div class="control-row-wrap"><div class="control-row" id="control-row"></div></div>
-            <div class="count" id="count"></div>
+            <div class="control-row" id="control-row"></div>
             <div id="feed"></div>
+            <div class="count" id="count"></div>
         </section>
     </main>
 
