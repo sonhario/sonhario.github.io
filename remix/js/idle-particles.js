@@ -26,6 +26,8 @@ let idleParticles = [];
 let idleActive = false;
 let idleFading = false;
 let idleFadeStart = 0;
+let idleSpinning = false;
+let idleSpinStart = 0;
 let playBtnHovered = false;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -86,6 +88,13 @@ function initIdleParticles(materialCount) {
     idleActive = true;
     idleFading = false;
     console.log(`✨ ${idleParticles.length} partículas idle (${IDLE_BASE} base + ${materialCount} materiais)`);
+}
+
+function spinIdleParticles() {
+    if (!idleActive) return;
+    idleSpinning = true;
+    idleSpinStart = millis();
+    playBtnHovered = true; // keep attraction active
 }
 
 function fadeOutIdleParticles() {
@@ -154,9 +163,11 @@ function updateIdleParticles() {
                     p.vy -= (dy / dist) * repel;
                 }
 
-                // Slight tangential nudge for orbital drift
-                p.vx += (-dy / dist) * 0.008;
-                p.vy += (dx / dist) * 0.008;
+                // Tangential force: gentle drift or accelerating spin (loading)
+                const spinElapsed = idleSpinning ? (millis() - idleSpinStart) * 0.001 : 0;
+                const tangent = idleSpinning ? 0.02 + spinElapsed * 0.04 : 0.008;
+                p.vx += (-dy / dist) * tangent;
+                p.vy += (dx / dist) * tangent;
             }
         } else if (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
             // Normal mouse repulsion (when not hovering play btn)

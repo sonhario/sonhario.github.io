@@ -299,8 +299,8 @@ function startPlayback() {
     playButton.classList.add('hidden');
     document.getElementById('controls-group').classList.remove('hidden');
 
-    // Fade out partículas idle
-    fadeOutIdleParticles();
+    // Spin partículas (loading) — fade out quando vídeo carregar
+    spinIdleParticles();
 
     console.log('▶️ Iniciando playback...');
 
@@ -390,6 +390,7 @@ function loadVideoInto(videoEl, material, isFront) {
         videoEl.oncanplaythrough = () => {
             videoEl.oncanplaythrough = null;
             console.log(`✅ Pronto: ${material.id} (${videoEl.videoWidth}x${videoEl.videoHeight})`);
+            fadeOutIdleParticles();
             preloadNextVideo();
         };
     } else {
