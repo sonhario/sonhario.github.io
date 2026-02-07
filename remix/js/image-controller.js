@@ -30,8 +30,8 @@ const IMAGE_DURATION_MIN = 3000;     // duração mínima (ms)
 const IMAGE_DURATION_MAX = 13000;    // duração máxima (ms)
 const IMAGE_FADE_MIN = 500;          // fade mínimo (ms)
 const IMAGE_FADE_MAX = 1500;         // fade máximo (ms)
-const IMAGE_SCALE_MIN = 0.07;        // 7% do lado maior do canvas
-const IMAGE_SCALE_MAX = 0.70;        // 70% do lado maior do canvas
+const IMAGE_SCALE_MIN = 0.13;        // 13% do lado menor do canvas
+const IMAGE_SCALE_MAX = 0.70;        // 70% do lado menor do canvas
 const IMAGE_MARGIN = 0.07;           // margem de 7% em todos os lados
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,8 +127,8 @@ function triggerImageOverlay() {
         currentImage = img;
 
         // Tamanho: lado maior da imagem ocupa 8-80% do lado maior do canvas
-        const canvasMax = Math.max(width, height);
-        const targetSize = canvasMax * (IMAGE_SCALE_MIN + Math.random() * (IMAGE_SCALE_MAX - IMAGE_SCALE_MIN));
+        const canvasMin = Math.min(width, height);
+        const targetSize = canvasMin * (IMAGE_SCALE_MIN + Math.random() * (IMAGE_SCALE_MAX - IMAGE_SCALE_MIN));
 
         const iw = img.naturalWidth;
         const ih = img.naturalHeight;
@@ -154,7 +154,7 @@ function triggerImageOverlay() {
         imageFadeDuration = IMAGE_FADE_MIN + Math.random() * (IMAGE_FADE_MAX - IMAGE_FADE_MIN);
         imageShowDuration = IMAGE_DURATION_MIN + Math.random() * (IMAGE_DURATION_MAX - IMAGE_DURATION_MIN);
 
-        const pct = (targetSize / canvasMax * 100).toFixed(0);
+        const pct = (targetSize / canvasMin * 100).toFixed(0);
         console.log(`🖼️ Imagem: ${material.id} (${pct}%, ${(imageShowDuration / 1000).toFixed(1)}s)`);
     };
     img.onerror = () => {
