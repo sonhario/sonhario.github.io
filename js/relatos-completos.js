@@ -145,7 +145,7 @@ function createRelatoCard(m) {
     let hasMedia = false;
 
     function addHr() {
-        if (hasMedia) media.appendChild(document.createElement('hr'));
+        media.appendChild(document.createElement('hr'));
     }
 
     if (m.audio_espectral_url) {
