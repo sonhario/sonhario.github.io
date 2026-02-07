@@ -102,6 +102,9 @@ function setup() {
     frontVideo = createHiddenVideo();
     backVideo = createHiddenVideo();
 
+    // Partículas idle (base count, atualiza após carregar materiais)
+    initIdleParticles(0);
+
     // Carregar materiais do JSON
     loadMaterials();
 
@@ -115,6 +118,9 @@ function setup() {
 function draw() {
     // Fundo preto
     background(0);
+
+    // Partículas idle (pré-play e durante fade out)
+    updateIdleParticles();
 
     // Camada 1: Renderizar vídeos (back primeiro, front por cima)
     if (isPlaying) {
@@ -256,6 +262,10 @@ async function loadMaterials() {
         console.log(`✅ Carregados ${materialsData.length} materiais válidos para Remix (${ENVIRONMENT})`);
         console.log('Tipos:', [...new Set(materialsData.map(m => m.tipo))]);
 
+        // Reiniciar partículas com contagem real (exclui legacy)
+        const nonLegacyCount = materialsData.filter(m => m.tipo !== 'legacy').length;
+        initIdleParticles(nonLegacyCount);
+
     } catch (error) {
         console.error('❌ Erro ao carregar materiais:', error);
         console.warn('Operando em modo de demonstração (sem dados)');
@@ -286,6 +296,9 @@ function startPlayback() {
     backVideoReady = false;
     playButton.classList.add('hidden');
     document.getElementById('controls-group').classList.remove('hidden');
+
+    // Fade out partículas idle
+    fadeOutIdleParticles();
 
     console.log('▶️ Iniciando playback...');
 
