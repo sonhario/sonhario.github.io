@@ -135,7 +135,7 @@ function updateIdleParticles() {
             const dy = cy - p.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             const minSide = Math.min(width, height);
-            const coreBase = minSide * 0.09;
+            const coreBase = minSide * 0.054;
 
             if (dist > 1) {
                 // Attract toward center (strong, noticeable quickly)
@@ -145,7 +145,7 @@ function updateIdleParticles() {
 
                 // Pulsating repulsion: Perlin noise by angle + time (organic, never repeats)
                 const angle = (Math.atan2(dy, dx) + Math.PI) / Math.PI; // 0-2 normalized
-                const pulse = 0.9 + noise(angle * 1.5, t * 0.25) * 1.2;
+                const pulse = 0.9 + noise(angle * 2.25, t * 0.375) * 1.2;
                 const coreR = coreBase * pulse;
 
                 if (dist < coreR * 2.5) {
