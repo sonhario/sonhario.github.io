@@ -112,10 +112,10 @@ html, body {
     visibility: hidden;
 }
 
-/* Volume Control — column: slider above button */
+/* Volume Control — column-reverse: button at bottom, slider above */
 .volume-control {
     display: flex;
-    flex-direction: column;
+    flex-direction: column-reverse;
     align-items: center;
 }
 
