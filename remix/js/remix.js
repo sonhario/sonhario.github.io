@@ -76,6 +76,8 @@ function setup() {
     // Referência ao botão PLAY
     playButton = document.getElementById('play-button');
     playButton.addEventListener('click', togglePlayPause);
+    playButton.addEventListener('mouseenter', () => { playBtnHovered = true; });
+    playButton.addEventListener('mouseleave', () => { playBtnHovered = false; });
 
     // Fullscreen button
     document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen);

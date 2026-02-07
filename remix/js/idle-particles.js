@@ -26,6 +26,7 @@ let idleParticles = [];
 let idleActive = false;
 let idleFading = false;
 let idleFadeStart = 0;
+let playBtnHovered = false;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CRIAR PARTÍCULA
@@ -126,8 +127,35 @@ function updateIdleParticles() {
         p.vx += nx * 0.015;
         p.vy += ny * 0.015;
 
-        // Mouse repulsion
-        if (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
+        // Play button hover: attract + repel core = ondulação
+        if (playBtnHovered) {
+            const cx = width / 2;
+            const cy = height / 2;
+            const dx = cx - p.x;
+            const dy = cy - p.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const minSide = Math.min(width, height);
+            const coreR = minSide * 0.07;
+
+            if (dist > 1) {
+                // Attract toward center
+                const attr = 0.03 * Math.min(dist / minSide, 1);
+                p.vx += (dx / dist) * attr;
+                p.vy += (dy / dist) * attr;
+
+                // Repel from core (play button area)
+                if (dist < coreR * 2.5) {
+                    const repel = 0.5 * (1 - dist / (coreR * 2.5));
+                    p.vx -= (dx / dist) * repel;
+                    p.vy -= (dy / dist) * repel;
+                }
+
+                // Slight tangential nudge for orbital drift
+                p.vx += (-dy / dist) * 0.008;
+                p.vy += (dx / dist) * 0.008;
+            }
+        } else if (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
+            // Normal mouse repulsion (when not hovering play btn)
             const dx = p.x - mouseX;
             const dy = p.y - mouseY;
             const dist = Math.sqrt(dx * dx + dy * dy);
