@@ -195,30 +195,138 @@ function createAudioPlayer(src, labelText) {
     label.textContent = labelText;
     wrapper.appendChild(label);
 
-    const audio = document.createElement('audio');
-    audio.src = src;
-    audio.preload = 'metadata';
-    audio.crossOrigin = 'anonymous';
+    const row = document.createElement('div');
+    row.className = 'waveform-row';
 
     const btn = document.createElement('button');
     btn.className = 'audio-play-btn';
     btn.textContent = '\u25B6';
+
+    const canvas = document.createElement('canvas');
+    canvas.className = 'waveform-canvas';
+    canvas.height = 48;
+
+    row.appendChild(btn);
+    row.appendChild(canvas);
+    wrapper.appendChild(row);
+
+    const audio = document.createElement('audio');
+    audio.src = src;
+    audio.preload = 'metadata';
+    audio.crossOrigin = 'anonymous';
+    wrapper.appendChild(audio);
+
+    let waveformData = null;
+    let animId = null;
+
+    // Fetch and decode audio to extract waveform
+    fetch(src)
+        .then(r => r.arrayBuffer())
+        .then(buf => {
+            const actx = new (window.AudioContext || window.webkitAudioContext)();
+            return actx.decodeAudioData(buf);
+        })
+        .then(decoded => {
+            const raw = decoded.getChannelData(0);
+            const bars = Math.floor(canvas.width / 3); // ~3px per bar
+            const step = Math.floor(raw.length / bars);
+            waveformData = new Float32Array(bars);
+            for (let i = 0; i < bars; i++) {
+                let sum = 0;
+                const start = i * step;
+                for (let j = start; j < start + step && j < raw.length; j++) {
+                    sum += Math.abs(raw[j]);
+                }
+                waveformData[i] = sum / step;
+            }
+            // Normalize
+            let max = 0;
+            for (let i = 0; i < waveformData.length; i++) {
+                if (waveformData[i] > max) max = waveformData[i];
+            }
+            if (max > 0) {
+                for (let i = 0; i < waveformData.length; i++) {
+                    waveformData[i] /= max;
+                }
+            }
+            drawWaveform(canvas, waveformData, 0);
+        })
+        .catch(() => {
+            // Fallback: flat bars
+            waveformData = new Float32Array(Math.floor(canvas.width / 3)).fill(0.3);
+            drawWaveform(canvas, waveformData, 0);
+        });
+
+    // Set canvas width once visible
+    const resizeCanvas = () => {
+        const w = canvas.clientWidth * (window.devicePixelRatio || 1);
+        if (w > 0 && canvas.width !== w) {
+            canvas.width = w;
+            canvas.height = 48 * (window.devicePixelRatio || 1);
+            if (waveformData) drawWaveform(canvas, waveformData, 0);
+        }
+    };
+    new ResizeObserver(resizeCanvas).observe(canvas);
+
+    function renderLoop() {
+        if (!waveformData) { animId = requestAnimationFrame(renderLoop); return; }
+        const progress = audio.duration ? audio.currentTime / audio.duration : 0;
+        drawWaveform(canvas, waveformData, progress);
+        if (!audio.paused) animId = requestAnimationFrame(renderLoop);
+    }
+
     btn.addEventListener('click', () => {
         if (audio.paused) {
             audio.play();
             btn.textContent = '\u275A\u275A';
+            animId = requestAnimationFrame(renderLoop);
         } else {
             audio.pause();
             btn.textContent = '\u25B6';
+            if (animId) cancelAnimationFrame(animId);
         }
     });
+
     audio.addEventListener('ended', () => {
         btn.textContent = '\u25B6';
+        if (animId) cancelAnimationFrame(animId);
+        if (waveformData) drawWaveform(canvas, waveformData, 1);
     });
 
-    wrapper.appendChild(btn);
-    wrapper.appendChild(audio);
+    // Click to seek
+    canvas.addEventListener('click', (e) => {
+        if (!audio.duration) return;
+        const rect = canvas.getBoundingClientRect();
+        const pct = (e.clientX - rect.left) / rect.width;
+        audio.currentTime = pct * audio.duration;
+        if (waveformData) drawWaveform(canvas, waveformData, pct);
+    });
+
     return wrapper;
+}
+
+function drawWaveform(canvas, data, progress) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    const dpr = window.devicePixelRatio || 1;
+    ctx.clearRect(0, 0, w, h);
+
+    const barW = 2 * dpr;
+    const gap = 1 * dpr;
+    const total = data.length;
+    const playedIdx = Math.floor(progress * total);
+    const minH = 2 * dpr;
+
+    for (let i = 0; i < total; i++) {
+        const x = i * (barW + gap);
+        const barH = Math.max(minH, data[i] * h * 0.9);
+        const y = (h - barH) / 2;
+        ctx.fillStyle = i <= playedIdx
+            ? 'rgba(255, 255, 255, 0.8)'
+            : 'rgba(255, 255, 255, 0.2)';
+        ctx.fillRect(x, y, barW, barH);
+    }
 }
 
 init();
