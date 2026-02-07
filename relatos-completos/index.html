@@ -9,14 +9,14 @@
         .control-row {
             display: flex;
             align-items: stretch;
-            margin-bottom: var(--space-xl);
+            margin-bottom: 2vmin;
             border: 1px solid #1a1d2e;
         }
 
         #show-btn {
             flex: 1;
-            font-size: var(--font-size-base);
-            padding: var(--space-md) var(--space-xl);
+            font-size: 1.6vmin;
+            padding: 1.5vmin 2.5vmin;
             border-radius: 0;
             background-color: #1a1d2e;
             border: none;
@@ -30,8 +30,8 @@
         }
 
         #filter-select {
-            font-size: var(--font-size-base);
-            padding: var(--space-md) var(--space-lg);
+            font-size: 1.6vmin;
+            padding: 1.5vmin 2vmin;
             border-radius: 0;
             border: none;
             border-left: 1px solid var(--color-border);
@@ -40,43 +40,43 @@
             cursor: pointer;
             appearance: none;
             -webkit-appearance: none;
-            padding-right: var(--space-xl);
+            padding-right: 3.5vmin;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
-            background-position: right 12px center;
+            background-position: right 1.2vmin center;
             width: auto;
         }
 
         .relato {
             border: none;
             border-radius: 0;
-            padding: var(--space-2xl);
-            margin-bottom: var(--space-lg);
+            padding: 5vmin;
+            margin-bottom: 2vmin;
             background: #1a1d2e;
             color: rgba(255, 255, 255, 0.85);
         }
 
         .relato-tipo {
             display: inline-block;
-            font-size: calc(var(--font-size-xs) * 1.15);
+            font-size: 1.8vmin;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.08em;
             padding: 0;
             background: none;
-            color: rgba(255, 255, 255, 0.5);
-            margin-bottom: var(--space-lg);
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 3vmin;
         }
 
         .relato-texto {
-            font-size: var(--font-size-base);
-            line-height: 1.8;
+            font-size: 1.8vmin;
+            line-height: 1.9;
             white-space: pre-wrap;
-            margin-bottom: var(--space-lg);
+            margin-bottom: 3vmin;
             color: rgba(255, 255, 255, 0.8);
         }
 
         .relato-texto.truncated {
-            max-height: 200px;
+            max-height: 25vmin;
             overflow: hidden;
             position: relative;
         }
@@ -87,7 +87,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 60px;
+            height: 8vmin;
             background: linear-gradient(transparent, #1a1d2e);
         }
 
@@ -95,10 +95,10 @@
             background: none;
             border: none;
             color: rgba(255, 255, 255, 0.4);
-            font-size: var(--font-size-sm);
+            font-size: 1.5vmin;
             cursor: pointer;
             padding: 0;
-            margin-bottom: var(--space-lg);
+            margin-bottom: 3vmin;
         }
 
         .btn-expandir:hover {
@@ -108,20 +108,19 @@
         }
 
         .relato-media {
-            margin-top: var(--space-lg);
+            margin-top: 3vmin;
         }
 
         .relato-media video {
             width: 100%;
-            max-height: 400px;
             border-radius: 0;
             background: #000;
-            margin-bottom: var(--space-md);
+            margin-bottom: 1.5vmin;
             pointer-events: none;
         }
 
         .audio-player {
-            margin-bottom: var(--space-md);
+            margin-bottom: 1.5vmin;
             display: flex;
             flex-direction: column;
             align-items: flex-start;
@@ -134,7 +133,7 @@
         .waveform-row {
             display: flex;
             align-items: center;
-            gap: var(--space-sm);
+            gap: 1.2vmin;
             width: 100%;
         }
 
@@ -142,10 +141,10 @@
             background: none;
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            min-width: 36px;
-            font-size: 14px;
+            width: 4.5vmin;
+            height: 4.5vmin;
+            min-width: 4.5vmin;
+            font-size: 1.6vmin;
             cursor: pointer;
             color: rgba(255, 255, 255, 0.7);
             display: inline-flex;
@@ -161,7 +160,7 @@
 
         .waveform-canvas {
             flex: 1;
-            height: 48px;
+            height: 5vmin;
             cursor: pointer;
         }
 
@@ -173,44 +172,45 @@
 
         .relato-media label {
             display: inline-block;
-            font-size: var(--font-size-xs);
+            font-size: 1.3vmin;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            padding: 2px 8px;
+            padding: 0.3vmin 0.8vmin;
             border-radius: 3px;
             background: rgba(255, 255, 255, 0.08);
             color: rgba(255, 255, 255, 0.5);
-            margin-bottom: var(--space-sm);
-            margin-top: var(--space-xl);
+            margin-bottom: 1.2vmin;
+            margin-top: 4vmin;
         }
 
         .loading-msg, .empty-msg {
             text-align: center;
-            padding: var(--space-xl);
+            padding: 3vmin;
             color: var(--color-text-muted);
+            font-size: 1.5vmin;
         }
 
         .count {
             text-align: center;
-            font-size: var(--font-size-sm);
+            font-size: 1.4vmin;
             color: var(--color-text-muted);
-            margin-top: var(--space-md);
-            margin-bottom: var(--space-md);
+            margin-top: 2vmin;
+            margin-bottom: 2vmin;
         }
 
         /* Header/Footer inline (same pattern as site) */
         .site-header {
-            padding: var(--space-md) var(--space-lg);
+            padding: 1.5vmin 2.5vmin;
             border-bottom: 1px solid var(--color-border);
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
-            gap: var(--space-sm);
+            gap: 1vmin;
         }
 
         .site-header h1 {
-            font-size: var(--font-size-lg);
+            font-size: 2vmin;
             margin: 0;
         }
 
@@ -220,8 +220,8 @@
 
         .site-header nav {
             display: flex;
-            gap: var(--space-md);
-            font-size: var(--font-size-sm);
+            gap: 1.5vmin;
+            font-size: 1.4vmin;
         }
 
         .site-footer {
@@ -233,8 +233,7 @@
         }
 
         @media (max-width: 768px) {
-            .relato { padding: var(--space-md); }
-            .relato-media video { max-height: 250px; }
+            .relato { padding: 4vmin; }
         }
     </style>
 </head>
@@ -250,7 +249,7 @@
     </header>
 
     <main>
-        <section class="container" style="padding-top: var(--space-xl);">
+        <section class="container" style="padding-top: 3vmin;">
             <div class="control-row" id="control-row"></div>
             <div id="feed"></div>
             <div class="count" id="count"></div>
