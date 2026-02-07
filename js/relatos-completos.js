@@ -202,12 +202,13 @@ function createAudioPlayer(src, labelText) {
     btn.className = 'audio-play-btn';
     btn.textContent = '\u25B6';
 
+    const canvasWrap = document.createElement('div');
+    canvasWrap.className = 'waveform-wrap';
     const canvas = document.createElement('canvas');
-    canvas.className = 'waveform-canvas';
-    canvas.height = 48;
 
+    canvasWrap.appendChild(canvas);
     row.appendChild(btn);
-    row.appendChild(canvas);
+    row.appendChild(canvasWrap);
     wrapper.appendChild(row);
 
     const audio = document.createElement('audio');
@@ -216,10 +217,49 @@ function createAudioPlayer(src, labelText) {
     audio.crossOrigin = 'anonymous';
     wrapper.appendChild(audio);
 
+    let rawAudio = null;
     let waveformData = null;
     let animId = null;
 
-    // Fetch and decode audio to extract waveform
+    function sizeCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = canvasWrap.clientWidth;
+        const cssH = canvasWrap.clientHeight;
+        if (cssW === 0) return;
+        canvas.width = cssW * dpr;
+        canvas.height = cssH * dpr;
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+        if (rawAudio) buildWaveform();
+    }
+
+    function buildWaveform() {
+        const dpr = window.devicePixelRatio || 1;
+        const barW = 2 * dpr;
+        const gap = 1 * dpr;
+        const bars = Math.max(1, Math.floor(canvas.width / (barW + gap)));
+        const step = Math.floor(rawAudio.length / bars);
+        if (step === 0) return;
+        waveformData = new Float32Array(bars);
+        for (let i = 0; i < bars; i++) {
+            let sum = 0;
+            const start = i * step;
+            for (let j = start; j < start + step && j < rawAudio.length; j++) {
+                sum += Math.abs(rawAudio[j]);
+            }
+            waveformData[i] = sum / step;
+        }
+        let max = 0;
+        for (let i = 0; i < waveformData.length; i++) {
+            if (waveformData[i] > max) max = waveformData[i];
+        }
+        if (max > 0) {
+            for (let i = 0; i < waveformData.length; i++) waveformData[i] /= max;
+        }
+        drawWaveform(canvas, waveformData, 0);
+    }
+
+    // Fetch and decode audio
     fetch(src)
         .then(r => r.arrayBuffer())
         .then(buf => {
@@ -227,46 +267,15 @@ function createAudioPlayer(src, labelText) {
             return actx.decodeAudioData(buf);
         })
         .then(decoded => {
-            const raw = decoded.getChannelData(0);
-            const bars = Math.floor(canvas.width / 3); // ~3px per bar
-            const step = Math.floor(raw.length / bars);
-            waveformData = new Float32Array(bars);
-            for (let i = 0; i < bars; i++) {
-                let sum = 0;
-                const start = i * step;
-                for (let j = start; j < start + step && j < raw.length; j++) {
-                    sum += Math.abs(raw[j]);
-                }
-                waveformData[i] = sum / step;
-            }
-            // Normalize
-            let max = 0;
-            for (let i = 0; i < waveformData.length; i++) {
-                if (waveformData[i] > max) max = waveformData[i];
-            }
-            if (max > 0) {
-                for (let i = 0; i < waveformData.length; i++) {
-                    waveformData[i] /= max;
-                }
-            }
-            drawWaveform(canvas, waveformData, 0);
+            rawAudio = decoded.getChannelData(0);
+            sizeCanvas();
         })
         .catch(() => {
-            // Fallback: flat bars
-            waveformData = new Float32Array(Math.floor(canvas.width / 3)).fill(0.3);
-            drawWaveform(canvas, waveformData, 0);
+            rawAudio = new Float32Array(100).fill(0.3);
+            sizeCanvas();
         });
 
-    // Set canvas width once visible
-    const resizeCanvas = () => {
-        const w = canvas.clientWidth * (window.devicePixelRatio || 1);
-        if (w > 0 && canvas.width !== w) {
-            canvas.width = w;
-            canvas.height = 48 * (window.devicePixelRatio || 1);
-            if (waveformData) drawWaveform(canvas, waveformData, 0);
-        }
-    };
-    new ResizeObserver(resizeCanvas).observe(canvas);
+    new ResizeObserver(sizeCanvas).observe(canvasWrap);
 
     function renderLoop() {
         if (!waveformData) { animId = requestAnimationFrame(renderLoop); return; }
@@ -293,10 +302,9 @@ function createAudioPlayer(src, labelText) {
         if (waveformData) drawWaveform(canvas, waveformData, 1);
     });
 
-    // Click to seek
-    canvas.addEventListener('click', (e) => {
+    canvasWrap.addEventListener('click', (e) => {
         if (!audio.duration) return;
-        const rect = canvas.getBoundingClientRect();
+        const rect = canvasWrap.getBoundingClientRect();
         const pct = (e.clientX - rect.left) / rect.width;
         audio.currentTime = pct * audio.duration;
         if (waveformData) drawWaveform(canvas, waveformData, pct);
