@@ -138,12 +138,17 @@ function updateIdleParticles() {
             const coreBase = minSide * 0.07;
 
             if (dist > 1) {
-                // Hard safe-zone: particles never enter button area
-                const safeR = coreBase * 1.3;
+                // Hard safe-zone: clamp position outside button area
+                const safeR = coreBase * 1.4;
                 if (dist < safeR) {
-                    const push = 2.0 * (1 - dist / safeR);
-                    p.vx -= (dx / dist) * push;
-                    p.vy -= (dy / dist) * push;
+                    p.x = cx - (dx / dist) * safeR;
+                    p.y = cy - (dy / dist) * safeR;
+                    // Kill inward velocity, keep tangential
+                    const dot = (p.vx * dx + p.vy * dy) / (dist * dist);
+                    if (dot < 0) {
+                        p.vx -= dx * dot * 0.8;
+                        p.vy -= dy * dot * 0.8;
+                    }
                 }
 
                 // Attract toward center (strong, noticeable quickly)
