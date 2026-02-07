@@ -11,7 +11,7 @@ const TIPO_LABELS = {
 };
 
 const FILTER_LABELS = {
-    todos: 'todos',
+    todos: 'tudo',
     sonhos: 'sonhos',
     prospeccoes: 'prospecções',
     descarregos: 'descarregos'
