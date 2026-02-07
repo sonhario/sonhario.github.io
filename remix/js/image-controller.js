@@ -132,33 +132,50 @@ function triggerImageOverlay() {
 
         const iw = img.naturalWidth;
         const ih = img.naturalHeight;
-
-        // Crop aleatório: 30-100% da imagem, aspect ratio aleatório
-        const cropFraction = 0.3 + Math.random() * 0.7;
-        const cropAspect = 0.5 + Math.random() * 1.5; // 1:2 até 3:2
-        // Calcular crop source rect
-        let cw = iw * cropFraction;
-        let ch = cw / cropAspect;
-        if (ch > ih * cropFraction) {
-            ch = ih * cropFraction;
-            cw = ch * cropAspect;
-        }
-        // Clamp to image bounds
-        cw = Math.min(cw, iw);
-        ch = Math.min(ch, ih);
-        imageCropW = cw;
-        imageCropH = ch;
-        imageCropX = Math.random() * (iw - cw);
-        imageCropY = Math.random() * (ih - ch);
-
-        // Tamanho no canvas: baseado no lado menor do canvas
         const canvasMin = Math.min(width, height);
-        const targetSize = canvasMin * (IMAGE_SCALE_MIN + Math.random() * (IMAGE_SCALE_MAX - IMAGE_SCALE_MIN));
-        const cropMax = Math.max(cw, ch);
-        const scale = targetSize / cropMax;
+        const doCrop = Math.random() < 0.85;
+        let logLabel;
 
-        imageDrawW = cw * scale;
-        imageDrawH = ch * scale;
+        if (doCrop) {
+            // 85%: crop 20-80% da imagem, aspect ratio aleatório
+            const cropFraction = 0.2 + Math.random() * 0.6;
+            const cropAspect = 0.5 + Math.random() * 1.5; // 1:2 até 3:2
+            let cw = iw * cropFraction;
+            let ch = cw / cropAspect;
+            if (ch > ih * cropFraction) {
+                ch = ih * cropFraction;
+                cw = ch * cropAspect;
+            }
+            cw = Math.min(cw, iw);
+            ch = Math.min(ch, ih);
+            imageCropW = cw;
+            imageCropH = ch;
+            imageCropX = Math.random() * (iw - cw);
+            imageCropY = Math.random() * (ih - ch);
+
+            // Tamanho no canvas
+            const targetSize = canvasMin * (IMAGE_SCALE_MIN + Math.random() * (IMAGE_SCALE_MAX - IMAGE_SCALE_MIN));
+            const cropMax = Math.max(cw, ch);
+            const scale = targetSize / cropMax;
+            imageDrawW = cw * scale;
+            imageDrawH = ch * scale;
+
+            logLabel = `crop ${(cropFraction * 100).toFixed(0)}%, ${(targetSize / canvasMin * 100).toFixed(0)}%`;
+        } else {
+            // 15%: imagem inteira, 40-70% do lado menor do canvas
+            imageCropX = 0;
+            imageCropY = 0;
+            imageCropW = iw;
+            imageCropH = ih;
+
+            const targetSize = canvasMin * (0.4 + Math.random() * 0.3);
+            const imgMax = Math.max(iw, ih);
+            const scale = targetSize / imgMax;
+            imageDrawW = iw * scale;
+            imageDrawH = ih * scale;
+
+            logLabel = `inteira ${(targetSize / canvasMin * 100).toFixed(0)}%`;
+        }
 
         // Posição aleatória respeitando margem
         const mx = width * IMAGE_MARGIN;
@@ -171,9 +188,7 @@ function triggerImageOverlay() {
         imageFadeDuration = IMAGE_FADE_MIN + Math.random() * (IMAGE_FADE_MAX - IMAGE_FADE_MIN);
         imageShowDuration = IMAGE_DURATION_MIN + Math.random() * (IMAGE_DURATION_MAX - IMAGE_DURATION_MIN);
 
-        const pct = (targetSize / canvasMin * 100).toFixed(0);
-        const cropPct = (cropFraction * 100).toFixed(0);
-        console.log(`🖼️ Imagem: ${material.id} (${pct}%, crop ${cropPct}%, ${(imageShowDuration / 1000).toFixed(1)}s)`);
+        console.log(`🖼️ Imagem: ${material.id} (${logLabel}, ${(imageShowDuration / 1000).toFixed(1)}s)`);
     };
     img.onerror = () => {
         console.error(`❌ Imagem: falha ao carregar ${material.id}`);
