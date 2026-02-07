@@ -19,8 +19,8 @@ const DURATIONS = [20, 22, 24, 25, 26];
 
 // Responsive grid: solid bg + dark cells only
 const GRID_DENSITY = 45;              // target cells on minor axis
-const GRID_BG = [30, 34, 52];         // canvas background (slightly lighter than #1a1d2e)
-const GRID_CELL_COLOR = [37, 42, 61]; // cell color (more gray/lighter)
+const GRID_BG = [30, 34, 52];         // canvas background (slightly lighter than page)
+const GRID_CELL_COLOR = [26, 29, 46]; // cell color (same as page bg #1a1d2e)
 
 // Pulse timing (seconds per phase)
 const PULSE_LOADING = 1.5;
