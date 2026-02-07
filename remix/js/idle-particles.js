@@ -148,7 +148,7 @@ function updateIdleParticles() {
 
             if (dist > 1) {
                 // Attract toward center (stronger during spin to counter centrifugal)
-                const attrBase = idleSpinning ? 0.18 : 0.12;
+                const attrBase = idleSpinning ? 0.30 : 0.12;
                 const attr = attrBase * Math.min(dist / minSide, 1);
                 p.vx += (dx / dist) * attr;
                 p.vy += (dy / dist) * attr;
