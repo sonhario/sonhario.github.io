@@ -56,10 +56,10 @@ html, body {
     transform: translate(-50%, -50%);
     z-index: 100;
 
-    width: 8vmin;
-    height: 8vmin;
-    background: rgba(255, 255, 255, 0.08);
-    border: 0.2vmin solid rgba(255, 255, 255, 0.3);
+    width: 64px;
+    height: 64px;
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.4);
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -70,20 +70,20 @@ html, body {
 }
 
 .play-btn svg {
-    width: 3vmin;
-    height: 3vmin;
-    margin-left: 0.4vmin; /* optical center — triangle points right */
+    width: 24px;
+    height: 24px;
+    margin-left: 3px; /* optical center — triangle points right */
     fill: rgba(255, 255, 255, 0.7);
 }
 
 .play-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.6);
     transform: translate(-50%, -50%) scale(1.08);
 }
 
 .play-btn:hover svg {
-    fill: rgba(255, 255, 255, 0.9);
+    fill: rgba(255, 255, 255, 0.95);
 }
 
 .play-btn:active {
@@ -111,8 +111,14 @@ html, body {
 }
 
 .fullscreen-btn svg {
-    width: 2vmin;
-    height: 2vmin;
+    width: 3vmin;
+    height: 3vmin;
+}
+
+.fullscreen-btn.hidden {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
 }
 
 .fullscreen-btn:hover {

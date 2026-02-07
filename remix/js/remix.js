@@ -54,8 +54,8 @@ function applyCanvasSize() {
         resizeCanvas(w, h);
         // Position fullscreen btn at bottom-right of canvas
         const rect = container.getBoundingClientRect();
-        fsBtn.style.bottom = (window.innerHeight - rect.bottom + 4) + 'px';
-        fsBtn.style.right = (window.innerWidth - rect.right + 4) + 'px';
+        fsBtn.style.bottom = (window.innerHeight - rect.bottom + 12) + 'px';
+        fsBtn.style.right = (window.innerWidth - rect.right + 12) + 'px';
     }
 }
 
@@ -280,6 +280,7 @@ function startPlayback() {
     isPlaying = true;
     backVideoReady = false;
     playButton.classList.add('hidden');
+    document.getElementById('fullscreen-btn').classList.remove('hidden');
 
     console.log('▶️ Iniciando playback...');
 
@@ -296,6 +297,7 @@ function startPlayback() {
 function pausePlayback() {
     isPlaying = false;
     playButton.classList.remove('hidden');
+    document.getElementById('fullscreen-btn').classList.add('hidden');
 
     console.log('⏸️ Pausando playback...');
 
