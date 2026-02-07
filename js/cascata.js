@@ -17,10 +17,10 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Duration range (seconds)
 const DURATIONS = [20, 22, 24, 25, 26];
 
-// Responsive checkerboard grid
+// Responsive grid: solid bg + dark cells only
 const GRID_DENSITY = 45;              // target cells on minor axis
-const GRID_COLOR_A = [30, 34, 52];    // slightly lighter than #1a1d2e
-const GRID_COLOR_B = [37, 42, 61];    // more gray/lighter (particle color)
+const GRID_BG = [30, 34, 52];         // canvas background (slightly lighter than #1a1d2e)
+const GRID_CELL_COLOR = [37, 42, 61]; // cell color (more gray/lighter)
 
 // Pulse timing (seconds per phase)
 const PULSE_LOADING = 1.5;
@@ -588,7 +588,6 @@ let allGainNodes = [];
 
 // Transition state: null → 'waitGrid' → 'hold' → playing
 let transitionState = null;
-let holdStart = 0;
 let pendingScore = null;
 
 function startPlayback(score) {
@@ -701,7 +700,8 @@ function hardCut() {
         try { v.pause(); } catch (e) {}
     });
 
-    background(26, 29, 46);
+    resetGridCells();
+    background(GRID_BG[0], GRID_BG[1], GRID_BG[2]);
     drawGrid();
     showButton();
 }
@@ -789,14 +789,7 @@ function cleanup() {
     allGainNodes = [];
 
     // NOTE: audioCtx NOT closed — reused across cascatas
-    // Reset grid cells to original positions
-    for (const c of gridCells) {
-        c.isParticle = false;
-        c.vx = 0;
-        c.vy = 0;
-        c.x = c.col * cellSize;
-        c.y = c.row * cellSize;
-    }
+    resetGridCells();
     transitionState = null;
     pendingScore = null;
 }
@@ -836,11 +829,14 @@ async function startCascata() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BLOCO 10: RESPONSIVE GRID-PARTICLES (each cell IS a particle)
+// BLOCO 10: RESPONSIVE GRID-PARTICLES
+// Background = GRID_BG (solid). Only dark cells exist as objects.
+// Before cascata: half fade out (1s) leaving equidistant pattern, then move.
 // ─────────────────────────────────────────────────────────────────────────────
 
 let gridCells = [];
-let cellSize = 16; // recalculated on resize
+let cellSize = 16;
+let fadeStart = 0;
 
 function buildGridCells(w, h) {
     cellSize = Math.min(w, h) / GRID_DENSITY;
@@ -850,142 +846,84 @@ function buildGridCells(w, h) {
     gridCells = [];
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-            gridCells.push({
-                x: c * cellSize,
-                y: r * cellSize,
-                row: r,
-                col: c,
-                isDark: (r + c) % 2 !== 0,
-                isParticle: false,
-                vx: 0,
-                vy: 0
-            });
-        }
-    }
-}
-
-function repositionGridCells(w, h) {
-    cellSize = Math.min(w, h) / GRID_DENSITY;
-    const cols = Math.ceil(w / cellSize);
-    const rows = Math.ceil(h / cellSize);
-    const needed = cols * rows;
-
-    // Rebuild if cell count changed significantly
-    if (Math.abs(gridCells.length - needed) > 10 || gridCells.length === 0) {
-        buildGridCells(w, h);
-        return;
-    }
-
-    // Reposition existing cells (preserve particle state during resize)
-    let i = 0;
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            if (i < gridCells.length) {
-                gridCells[i].x = c * cellSize;
-                gridCells[i].y = r * cellSize;
-                gridCells[i].row = r;
-                gridCells[i].col = c;
-                gridCells[i].isDark = (r + c) % 2 !== 0;
-                i++;
+            if ((r + c) % 2 !== 0) { // only dark positions
+                gridCells.push({
+                    x: c * cellSize,
+                    y: r * cellSize,
+                    row: r, col: c,
+                    // Even-row darks survive (no corner touching after fade)
+                    willSurvive: (r % 2 === 0),
+                    isParticle: false,
+                    vx: 0, vy: 0
+                });
             }
         }
-    }
-    // Trim excess or add missing
-    gridCells.length = Math.min(gridCells.length, needed);
-    while (gridCells.length < needed) {
-        const idx = gridCells.length;
-        const r = Math.floor(idx / cols);
-        const c = idx % cols;
-        gridCells.push({
-            x: c * cellSize, y: r * cellSize,
-            row: r, col: c,
-            isDark: (r + c) % 2 !== 0,
-            isParticle: false, vx: 0, vy: 0
-        });
     }
 }
 
 function prepareTransition() {
-    // Collect dark cells, shuffle, mark 50% as particles
-    const darkIndices = [];
-    for (let i = 0; i < gridCells.length; i++) {
-        if (gridCells[i].isDark) darkIndices.push(i);
+    // Assign velocities to surviving cells (they'll move after fade)
+    for (const c of gridCells) {
+        if (c.willSurvive) {
+            c.isParticle = true;
+            const angle = Math.random() * Math.PI * 2;
+            const baseSpeed = 8 + Math.random() * 24;
+            c.vx = Math.cos(angle) * baseSpeed;
+            c.vy = Math.sin(angle) * baseSpeed;
+        }
     }
-    // Fisher-Yates shuffle
-    for (let i = darkIndices.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [darkIndices[i], darkIndices[j]] = [darkIndices[j], darkIndices[i]];
-    }
-    const half = Math.floor(darkIndices.length / 2);
-    for (let i = 0; i < half; i++) {
-        const cell = gridCells[darkIndices[i]];
-        cell.isParticle = true;
-        const angle = Math.random() * Math.PI * 2;
-        const baseSpeed = 8 + Math.random() * 24;
-        cell.vx = Math.cos(angle) * baseSpeed;
-        cell.vy = Math.sin(angle) * baseSpeed;
+}
+
+function resetGridCells() {
+    for (const c of gridCells) {
+        c.isParticle = false;
+        c.vx = 0;
+        c.vy = 0;
+        c.x = c.col * cellSize;
+        c.y = c.row * cellSize;
     }
 }
 
 function drawGrid() {
     const ctx = drawingContext;
     const cs = cellSize;
-    const styleA = `rgb(${GRID_COLOR_A[0]},${GRID_COLOR_A[1]},${GRID_COLOR_A[2]})`;
-    const styleB = `rgb(${GRID_COLOR_B[0]},${GRID_COLOR_B[1]},${GRID_COLOR_B[2]})`;
-
-    for (let i = 0; i < gridCells.length; i++) {
-        const c = gridCells[i];
-        ctx.fillStyle = c.isDark ? styleB : styleA;
+    const clr = GRID_CELL_COLOR;
+    ctx.fillStyle = `rgb(${clr[0]},${clr[1]},${clr[2]})`;
+    for (const c of gridCells) {
         ctx.fillRect(c.x, c.y, cs, cs);
     }
 }
 
-function drawGridWithAlpha(alpha) {
+// Fade phase: non-surviving cells fade out (1s), surviving stay solid
+function drawFadePhase(fadeElapsed) {
+    background(GRID_BG[0], GRID_BG[1], GRID_BG[2]);
+
     const ctx = drawingContext;
     const cs = cellSize;
-    const a = Math.max(0, Math.min(1, alpha));
+    const clr = GRID_CELL_COLOR;
+    const fadeProg = Math.min(fadeElapsed / 1.0, 1);
 
-    for (let i = 0; i < gridCells.length; i++) {
-        const c = gridCells[i];
-        const clr = c.isDark ? GRID_COLOR_B : GRID_COLOR_A;
-        ctx.fillStyle = `rgba(${clr[0]},${clr[1]},${clr[2]},${a})`;
-        ctx.fillRect(c.x, c.y, cs, cs);
+    // Draw surviving cells (full opacity)
+    ctx.fillStyle = `rgb(${clr[0]},${clr[1]},${clr[2]})`;
+    for (const c of gridCells) {
+        if (c.willSurvive) {
+            ctx.fillRect(c.x, c.y, cs, cs);
+        }
     }
-}
 
-function drawHoldPhase(holdElapsed) {
-    background(26, 29, 46); // #1a1d2e
-
-    if (holdElapsed < 1.0) {
-        // Phase 1 (0-1s): static grid
-        drawGrid();
-    } else {
-        // Phase 2 (1-2s): non-particles fade out + particles drift
-        const fadeProg = Math.min((holdElapsed - 1.0) / 1.0, 1);
-
-        // Draw non-particle cells with fading alpha
-        const ctx = drawingContext;
-        const cs = cellSize;
-        const styleA = `rgb(${GRID_COLOR_A[0]},${GRID_COLOR_A[1]},${GRID_COLOR_A[2]})`;
-
-        for (let i = 0; i < gridCells.length; i++) {
-            const c = gridCells[i];
-            if (!c.isParticle) {
-                const clr = c.isDark ? GRID_COLOR_B : GRID_COLOR_A;
-                ctx.fillStyle = `rgba(${clr[0]},${clr[1]},${clr[2]},${1 - fadeProg})`;
+    // Draw fading cells
+    if (fadeProg < 1) {
+        ctx.fillStyle = `rgba(${clr[0]},${clr[1]},${clr[2]},${1 - fadeProg})`;
+        for (const c of gridCells) {
+            if (!c.willSurvive) {
                 ctx.fillRect(c.x, c.y, cs, cs);
             }
         }
-
-        // Move and draw particles
-        const dt = 1 / 60;
-        const holdSpeed = 0.5 + fadeProg * 1.5; // 0.5x → 2x
-        updateAndDrawParticles(ctx, dt, holdSpeed);
     }
 }
 
 function updateAndDrawParticles(ctx, dt, speedMult) {
-    const clr = GRID_COLOR_B;
+    const clr = GRID_CELL_COLOR;
     ctx.fillStyle = `rgb(${clr[0]},${clr[1]},${clr[2]})`;
 
     const speed = speedMult * dt;
@@ -993,14 +931,12 @@ function updateAndDrawParticles(ctx, dt, speedMult) {
     const h = height;
     const cs = cellSize;
 
-    for (let i = 0; i < gridCells.length; i++) {
-        const p = gridCells[i];
+    for (const p of gridCells) {
         if (!p.isParticle) continue;
 
         p.x += p.vx * speed;
         p.y += p.vy * speed;
 
-        // Wrap around edges
         if (p.x < -cs) p.x += w + cs;
         else if (p.x > w) p.x -= w + cs;
         if (p.y < -cs) p.y += h + cs;
@@ -1010,28 +946,26 @@ function updateAndDrawParticles(ctx, dt, speedMult) {
     }
 }
 
-// Loading pulse: grid "breathes" with subtle brightness variation
+// Loading pulse: grid breathes with subtle brightness variation
 function drawLoadingPulse() {
-    background(26, 29, 46); // #1a1d2e
+    background(GRID_BG[0], GRID_BG[1], GRID_BG[2]);
     drawGrid();
 
     const phase = pulsePhase % 4;
     let alpha;
     if (phase < 2) {
-        // Lighten: subtle bright overlay
         alpha = Math.sin(Math.PI * phase / 2) * 0.12;
         drawingContext.fillStyle = `rgba(60, 65, 85, ${alpha})`;
     } else {
-        // Darken: subtle dark overlay
         alpha = Math.sin(Math.PI * (phase - 2) / 2) * 0.08;
         drawingContext.fillStyle = `rgba(10, 12, 20, ${alpha})`;
     }
     drawingContext.fillRect(0, 0, width, height);
 }
 
-// Cascata playback: dark bg + particles drifting
+// Cascata playback: solid bg + particles drifting
 function drawCascataBackground(elapsed, duration) {
-    background(26, 29, 46); // #1a1d2e
+    background(GRID_BG[0], GRID_BG[1], GRID_BG[2]);
 
     const dt = 1 / 60;
     const speedMult = getSpeedMultiplier(elapsed, duration);
@@ -1074,11 +1008,7 @@ function applyCanvasSize() {
     container.style.width = w + 'px';
     container.style.height = h + 'px';
     resizeCanvas(w, h);
-    if (gridCells.length === 0) {
-        buildGridCells(w, h);
-    } else {
-        repositionGridCells(w, h);
-    }
+    buildGridCells(w, h);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1109,14 +1039,15 @@ function draw() {
         // Wait for pulse to reach grid state (alpha ≈ 0)
         const phase = pulsePhase % 2;
         if (phase < 0.03 && pulsePhase > 0.5) {
-            transitionState = 'hold';
-            holdStart = performance.now();
+            transitionState = 'fade';
+            fadeStart = performance.now();
             prepareTransition();
         }
-    } else if (transitionState === 'hold') {
-        const holdElapsed = (performance.now() - holdStart) / 1000;
-        drawHoldPhase(holdElapsed);
-        if (holdElapsed >= 2.0) {
+    } else if (transitionState === 'fade') {
+        // Half cells fade out (1s), then cascata starts
+        const fadeElapsed = (performance.now() - fadeStart) / 1000;
+        drawFadePhase(fadeElapsed);
+        if (fadeElapsed >= 1.0) {
             transitionState = null;
             startPlayback(pendingScore);
         }
@@ -1124,8 +1055,8 @@ function draw() {
         advancePulse(PULSE_LOADING);
         drawLoadingPulse();
     } else {
-        // Idle: static grid on dark background
-        background(26, 29, 46);
+        // Idle: solid bg + all dark cells
+        background(GRID_BG[0], GRID_BG[1], GRID_BG[2]);
         drawGrid();
     }
 }
@@ -1133,7 +1064,7 @@ function draw() {
 function windowResized() {
     applyCanvasSize();
     if (!isPlaying) {
-        background(26, 29, 46);
+        background(GRID_BG[0], GRID_BG[1], GRID_BG[2]);
         drawGrid();
     }
 }
