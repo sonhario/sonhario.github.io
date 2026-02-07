@@ -166,7 +166,7 @@ function updateIdleParticles() {
 
                 // Tangential force: gentle drift or accelerating spin (loading)
                 const spinElapsed = idleSpinning ? (millis() - idleSpinStart) * 0.001 : 0;
-                const tangent = idleSpinning ? Math.min(0.02 + spinElapsed * 0.04, 0.10) : 0.008;
+                const tangent = idleSpinning ? Math.min(0.07 + spinElapsed * 0.04, 0.10) : 0.008;
                 p.vx += (-dy / dist) * tangent;
                 p.vy += (dx / dist) * tangent;
             }
