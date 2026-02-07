@@ -586,7 +586,7 @@ let lastPulseTime = 0;
 let currentPlaybackRate = 1.0;
 let allGainNodes = [];
 
-// Transition state: null → 'waitGrid' → 'hold' → playing
+// Transition state: null → 'waitGrid' → 'fade' → playing
 let transitionState = null;
 let pendingScore = null;
 
@@ -946,7 +946,7 @@ function updateAndDrawParticles(ctx, dt, speedMult) {
     }
 }
 
-// Loading pulse: grid breathes (light bg → white → light bg → gray)
+// Loading pulse: grid → canvas bg color → grid → cell color → grid (repeat)
 function drawLoadingPulse() {
     background(GRID_BG[0], GRID_BG[1], GRID_BG[2]);
     drawGrid();
@@ -954,13 +954,15 @@ function drawLoadingPulse() {
     const phase = pulsePhase % 4;
     let alpha;
     if (phase < 2) {
-        // Brighten toward white
-        alpha = Math.sin(Math.PI * phase / 2) * 0.35;
-        drawingContext.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        // Dissolve to canvas bg (hides cells) and back
+        alpha = Math.sin(Math.PI * phase / 2);
+        const c = GRID_BG;
+        drawingContext.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${alpha})`;
     } else {
-        // Darken slightly toward gray
-        alpha = Math.sin(Math.PI * (phase - 2) / 2) * 0.15;
-        drawingContext.fillStyle = `rgba(180, 185, 200, ${alpha})`;
+        // Dissolve to cell color (everything goes dark) and back
+        alpha = Math.sin(Math.PI * (phase - 2) / 2);
+        const c = GRID_CELL_COLOR;
+        drawingContext.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${alpha})`;
     }
     drawingContext.fillRect(0, 0, width, height);
 }
@@ -1038,18 +1040,18 @@ function draw() {
     } else if (transitionState === 'waitGrid') {
         advancePulse(PULSE_LOADING);
         drawLoadingPulse();
-        // Wait for pulse to reach grid state (alpha ≈ 0)
+        // Wait for pulse cycle to land on grid-visible (alpha ≈ 0, every 2 phases)
         const phase = pulsePhase % 2;
-        if (phase < 0.03 && pulsePhase > 0.5) {
+        if (phase < 0.05) {
             transitionState = 'fade';
             fadeStart = performance.now();
             prepareTransition();
         }
     } else if (transitionState === 'fade') {
-        // Half cells fade out (1s), then cascata starts
+        // Half cells fade out (1s), pause 0.5s, then cascata starts
         const fadeElapsed = (performance.now() - fadeStart) / 1000;
-        drawFadePhase(fadeElapsed);
-        if (fadeElapsed >= 1.0) {
+        drawFadePhase(Math.min(fadeElapsed, 1.0));
+        if (fadeElapsed >= 1.5) {
             transitionState = null;
             startPlayback(pendingScore);
         }
