@@ -30,7 +30,7 @@ function renderControls() {
 
     const btn = document.createElement('button');
     btn.id = 'show-btn';
-    btn.textContent = 'mostrar um relato original e materiais gerados a partir dele em:';
+    btn.textContent = 'Mostrar [1] relato e materiais gerados a partir dele em:';
     btn.addEventListener('click', () => {
         showRandomRelato();
     });
