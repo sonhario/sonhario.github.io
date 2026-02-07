@@ -144,12 +144,18 @@ function createRelatoCard(m) {
     media.className = 'relato-media';
     let hasMedia = false;
 
+    function addHr() {
+        if (hasMedia) media.appendChild(document.createElement('hr'));
+    }
+
     if (m.audio_espectral_url) {
+        addHr();
         media.appendChild(createAudioPlayer(m.audio_espectral_url, 'voz processada'));
         hasMedia = true;
     }
 
     if (m.imagem_url) {
+        addHr();
         const label = document.createElement('label');
         label.textContent = 'imagem gerada';
         media.appendChild(label);
@@ -162,11 +168,13 @@ function createRelatoCard(m) {
     }
 
     if (m.audio_10s_url) {
+        addHr();
         media.appendChild(createAudioPlayer(m.audio_10s_url, 'paisagem sonora'));
         hasMedia = true;
     }
 
     if (m.video_url) {
+        addHr();
         const label = document.createElement('label');
         label.textContent = 'video gerado';
         media.appendChild(label);
