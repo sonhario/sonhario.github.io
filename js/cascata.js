@@ -789,11 +789,13 @@ function cleanup() {
     allGainNodes = [];
 
     // NOTE: audioCtx NOT closed — reused across cascatas
-    // Reset grid cells to static state (no particles moving)
+    // Reset grid cells to original positions
     for (const c of gridCells) {
         c.isParticle = false;
         c.vx = 0;
         c.vy = 0;
+        c.x = c.col * cellSize;
+        c.y = c.row * cellSize;
     }
     transitionState = null;
     pendingScore = null;
