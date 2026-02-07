@@ -147,8 +147,9 @@ function updateIdleParticles() {
             const coreBase = minSide * 0.054;
 
             if (dist > 1) {
-                // Attract toward center (strong, noticeable quickly)
-                const attr = 0.12 * Math.min(dist / minSide, 1);
+                // Attract toward center (stronger during spin to counter centrifugal)
+                const attrBase = idleSpinning ? 0.18 : 0.12;
+                const attr = attrBase * Math.min(dist / minSide, 1);
                 p.vx += (dx / dist) * attr;
                 p.vy += (dy / dist) * attr;
 
@@ -165,7 +166,7 @@ function updateIdleParticles() {
 
                 // Tangential force: gentle drift or accelerating spin (loading)
                 const spinElapsed = idleSpinning ? (millis() - idleSpinStart) * 0.001 : 0;
-                const tangent = idleSpinning ? 0.02 + spinElapsed * 0.04 : 0.008;
+                const tangent = idleSpinning ? Math.min(0.02 + spinElapsed * 0.04, 0.10) : 0.008;
                 p.vx += (-dy / dist) * tangent;
                 p.vy += (dx / dist) * tangent;
             }
