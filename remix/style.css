@@ -112,10 +112,10 @@ html, body {
     visibility: hidden;
 }
 
-/* Volume Control — column-reverse: button at bottom, slider above */
+/* Volume Control — button at bottom, slider floats above */
 .volume-control {
+    position: relative;
     display: flex;
-    flex-direction: column-reverse;
     align-items: center;
 }
 
@@ -142,8 +142,12 @@ html, body {
 .volume-btn.muted .icon-vol-on { display: none; }
 .volume-btn.muted .icon-vol-off { display: block; }
 
-/* Slider — hidden by default, appears on hover over volume-btn only */
+/* Slider — absolute so it doesn't inflate parent hover area */
 .volume-slider-wrap {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
