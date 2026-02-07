@@ -19,10 +19,14 @@ let imageStartTime = 0;      // millis() do início da fase atual
 let imageFadeDuration = 0;   // duração do fade atual (ms)
 let imageShowDuration = 0;   // duração da exibição (ms)
 let lastImageCheck = 0;      // millis() da última checagem de probabilidade
-let imageDrawX = 0;          // posição x calculada no trigger
-let imageDrawY = 0;          // posição y
-let imageDrawW = 0;          // largura calculada
-let imageDrawH = 0;          // altura calculada
+let imageDrawX = 0;          // posição x no canvas
+let imageDrawY = 0;          // posição y no canvas
+let imageDrawW = 0;          // largura no canvas
+let imageDrawH = 0;          // altura no canvas
+let imageCropX = 0;          // source x (crop da imagem original)
+let imageCropY = 0;          // source y
+let imageCropW = 0;          // source width
+let imageCropH = 0;          // source height
 
 const IMAGE_CHANCE = 0.13;           // 13% por checagem
 const IMAGE_CHECK_INTERVAL = 3000;   // checar a cada 3s
@@ -126,28 +130,41 @@ function triggerImageOverlay() {
     img.onload = () => {
         currentImage = img;
 
-        // Tamanho: lado maior da imagem ocupa 8-80% do lado maior do canvas
-        const canvasMin = Math.min(width, height);
-        const targetSize = canvasMin * (IMAGE_SCALE_MIN + Math.random() * (IMAGE_SCALE_MAX - IMAGE_SCALE_MIN));
-
         const iw = img.naturalWidth;
         const ih = img.naturalHeight;
-        const imgMax = Math.max(iw, ih);
-        const scale = targetSize / imgMax;
 
-        imageDrawW = iw * scale;
-        imageDrawH = ih * scale;
+        // Crop aleatório: 30-100% da imagem, aspect ratio aleatório
+        const cropFraction = 0.3 + Math.random() * 0.7;
+        const cropAspect = 0.5 + Math.random() * 1.5; // 1:2 até 3:2
+        // Calcular crop source rect
+        let cw = iw * cropFraction;
+        let ch = cw / cropAspect;
+        if (ch > ih * cropFraction) {
+            ch = ih * cropFraction;
+            cw = ch * cropAspect;
+        }
+        // Clamp to image bounds
+        cw = Math.min(cw, iw);
+        ch = Math.min(ch, ih);
+        imageCropW = cw;
+        imageCropH = ch;
+        imageCropX = Math.random() * (iw - cw);
+        imageCropY = Math.random() * (ih - ch);
 
-        // Posição aleatória respeitando margem de 8%
+        // Tamanho no canvas: baseado no lado menor do canvas
+        const canvasMin = Math.min(width, height);
+        const targetSize = canvasMin * (IMAGE_SCALE_MIN + Math.random() * (IMAGE_SCALE_MAX - IMAGE_SCALE_MIN));
+        const cropMax = Math.max(cw, ch);
+        const scale = targetSize / cropMax;
+
+        imageDrawW = cw * scale;
+        imageDrawH = ch * scale;
+
+        // Posição aleatória respeitando margem
         const mx = width * IMAGE_MARGIN;
         const my = height * IMAGE_MARGIN;
-        const minX = mx;
-        const maxX = width - mx - imageDrawW;
-        const minY = my;
-        const maxY = height - my - imageDrawH;
-
-        imageDrawX = minX + Math.random() * Math.max(0, maxX - minX);
-        imageDrawY = minY + Math.random() * Math.max(0, maxY - minY);
+        imageDrawX = mx + Math.random() * Math.max(0, width - 2 * mx - imageDrawW);
+        imageDrawY = my + Math.random() * Math.max(0, height - 2 * my - imageDrawH);
 
         imageState = 'fading_in';
         imageStartTime = millis();
@@ -155,7 +172,8 @@ function triggerImageOverlay() {
         imageShowDuration = IMAGE_DURATION_MIN + Math.random() * (IMAGE_DURATION_MAX - IMAGE_DURATION_MIN);
 
         const pct = (targetSize / canvasMin * 100).toFixed(0);
-        console.log(`🖼️ Imagem: ${material.id} (${pct}%, ${(imageShowDuration / 1000).toFixed(1)}s)`);
+        const cropPct = (cropFraction * 100).toFixed(0);
+        console.log(`🖼️ Imagem: ${material.id} (${pct}%, crop ${cropPct}%, ${(imageShowDuration / 1000).toFixed(1)}s)`);
     };
     img.onerror = () => {
         console.error(`❌ Imagem: falha ao carregar ${material.id}`);
@@ -172,6 +190,9 @@ function drawImageOverlay(alpha) {
 
     drawingContext.save();
     drawingContext.globalAlpha = alpha;
-    drawingContext.drawImage(currentImage, imageDrawX, imageDrawY, imageDrawW, imageDrawH);
+    // drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh) — crop source → canvas dest
+    drawingContext.drawImage(currentImage,
+        imageCropX, imageCropY, imageCropW, imageCropH,
+        imageDrawX, imageDrawY, imageDrawW, imageDrawH);
     drawingContext.restore();
 }
