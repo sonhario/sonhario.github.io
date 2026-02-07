@@ -70,8 +70,8 @@ async function loadMaterials() {
 
         if (!response.ok) throw new Error(`${response.status}`);
         allMaterials = await response.json();
-        // Remove cotidiano
-        allMaterials = allMaterials.filter(m => m.tipo !== 'cotidiano');
+        // Only text-based types (exclude legacy and cotidiano)
+        allMaterials = allMaterials.filter(m => m.tipo === 'sonhos' || m.tipo === 'prospeccoes' || m.tipo === 'descarregos');
         feed.innerHTML = '';
     } catch (error) {
         feed.innerHTML = `<div class="empty-msg">Erro ao carregar: ${error.message}</div>`;
