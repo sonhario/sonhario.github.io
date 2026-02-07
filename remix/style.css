@@ -56,10 +56,10 @@ html, body {
     transform: translate(-50%, -50%);
     z-index: 100;
 
-    width: 64px;
-    height: 64px;
+    width: 108px;
+    height: 108px;
     background: #1a1d2e;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    border: none;
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -70,15 +70,14 @@ html, body {
 }
 
 .play-btn svg {
-    width: 24px;
-    height: 24px;
-    margin-left: 2px; /* optical center — triangle points right */
+    width: 40px;
+    height: 40px;
+    margin-left: 6px; /* optical center — triangle points right */
     fill: rgba(255, 255, 255, 0.7);
 }
 
 .play-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.6);
+    background: #222640;
     transform: translate(-50%, -50%) scale(1.08);
 }
 
