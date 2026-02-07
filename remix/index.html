@@ -9,27 +9,29 @@
 </head>
 <body>
     <div id="p5-container">
-        <div id="volume-control" class="volume-control hidden">
-            <div class="volume-slider-wrap">
-                <input type="range" id="volume-slider" min="0" max="100" value="100" orient="vertical">
+        <div id="controls-group" class="controls-group hidden">
+            <div class="volume-control">
+                <button id="volume-btn" class="volume-btn" title="Volume">
+                    <svg class="icon-vol-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
+                    </svg>
+                    <svg class="icon-vol-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+                    </svg>
+                </button>
+                <div class="volume-slider-wrap">
+                    <input type="range" id="volume-slider" min="0" max="100" value="100" orient="vertical">
+                </div>
             </div>
-            <button id="volume-btn" class="volume-btn" title="Volume">
-                <svg class="icon-vol-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
+            <button id="fullscreen-btn" class="fullscreen-btn" title="Tela cheia">
+                <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
                 </svg>
-                <svg class="icon-vol-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+                <svg class="icon-shrink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 14h2a2 2 0 012 2v2m8 0v-2a2 2 0 012-2h2M18 10h-2a2 2 0 01-2-2V6M6 10h2a2 2 0 002-2V6"/>
                 </svg>
             </button>
         </div>
-        <button id="fullscreen-btn" class="fullscreen-btn hidden" title="Tela cheia">
-            <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
-            </svg>
-            <svg class="icon-shrink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 14h2a2 2 0 012 2v2m8 0v-2a2 2 0 012-2h2M18 10h-2a2 2 0 01-2-2V6M6 10h2a2 2 0 002-2V6"/>
-            </svg>
-        </button>
     </div>
 
     <nav class="remix-nav">

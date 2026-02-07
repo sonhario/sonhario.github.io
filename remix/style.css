@@ -96,21 +96,27 @@ html, body {
     transition: all 0.3s ease;
 }
 
-/* Volume Control — inside #p5-container, left of fullscreen btn */
-.volume-control {
+/* Controls Group — bottom-right of canvas, flex row */
+.controls-group {
     position: absolute;
     bottom: 1.5vmin;
-    right: 6vmin;
+    right: 1.5vmin;
     z-index: 150;
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    align-items: flex-end;
 }
 
-.volume-control.hidden {
+.controls-group.hidden {
     opacity: 0;
     pointer-events: none;
     visibility: hidden;
+}
+
+/* Volume Control — column: slider above button */
+.volume-control {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .volume-btn {
@@ -132,19 +138,11 @@ html, body {
     color: rgba(255, 255, 255, 0.7);
 }
 
-.volume-btn .icon-vol-off {
-    display: none;
-}
+.volume-btn .icon-vol-off { display: none; }
+.volume-btn.muted .icon-vol-on { display: none; }
+.volume-btn.muted .icon-vol-off { display: block; }
 
-.volume-btn.muted .icon-vol-on {
-    display: none;
-}
-
-.volume-btn.muted .icon-vol-off {
-    display: block;
-}
-
-/* Slider — hidden by default, appears on hover over volume-control */
+/* Slider — hidden by default, appears on hover over volume-btn only */
 .volume-slider-wrap {
     opacity: 0;
     pointer-events: none;
@@ -152,7 +150,8 @@ html, body {
     padding-bottom: 0.5vmin;
 }
 
-.volume-control:hover .volume-slider-wrap {
+.volume-btn:hover + .volume-slider-wrap,
+.volume-slider-wrap:hover {
     opacity: 1;
     pointer-events: auto;
 }
@@ -182,31 +181,14 @@ html, body {
     border-radius: 0.15vmin;
 }
 
-/* Fullscreen mode — volume control */
-#p5-container:fullscreen .volume-control,
-#p5-container:-webkit-full-screen .volume-control {
-    bottom: 2vmin;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-#p5-container:fullscreen .volume-control:hover,
-#p5-container:-webkit-full-screen .volume-control:hover {
-    opacity: 1;
-}
-
-/* Fullscreen Button — inside #p5-container */
+/* Fullscreen Button */
 .fullscreen-btn {
-    position: absolute;
-    bottom: 1.5vmin;
-    right: 1.5vmin;
-    z-index: 150;
     background: none;
     border: none;
     color: rgba(255, 255, 255, 0.25);
     cursor: pointer;
     padding: 0.8vmin;
-    transition: color 0.3s ease, opacity 0.3s ease;
+    transition: color 0.3s ease;
     line-height: 0;
 }
 
@@ -215,39 +197,33 @@ html, body {
     height: 3vmin;
 }
 
-/* Icon toggle: expand visible normally, shrink in fullscreen */
-.fullscreen-btn .icon-shrink {
-    display: none;
-}
-
-.fullscreen-btn.hidden {
-    opacity: 0;
-    pointer-events: none;
-    visibility: hidden;
-}
+.fullscreen-btn .icon-shrink { display: none; }
 
 .fullscreen-btn:hover {
     color: rgba(255, 255, 255, 0.7);
 }
 
-/* Fullscreen mode */
+/* Fullscreen mode — hide nav */
 :fullscreen .remix-nav,
 :-webkit-full-screen .remix-nav {
     display: none;
 }
 
-#p5-container:fullscreen .fullscreen-btn,
-#p5-container:-webkit-full-screen .fullscreen-btn {
+/* Fullscreen mode — controls hidden, appear on hover over group area */
+#p5-container:fullscreen .controls-group,
+#p5-container:-webkit-full-screen .controls-group {
     bottom: 2vmin;
     right: 2vmin;
     opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
-#p5-container:fullscreen .fullscreen-btn:hover,
-#p5-container:-webkit-full-screen .fullscreen-btn:hover {
+#p5-container:fullscreen .controls-group:hover,
+#p5-container:-webkit-full-screen .controls-group:hover {
     opacity: 1;
 }
 
+/* Fullscreen icon swap */
 #p5-container:fullscreen .fullscreen-btn .icon-expand,
 #p5-container:-webkit-full-screen .fullscreen-btn .icon-expand {
     display: none;

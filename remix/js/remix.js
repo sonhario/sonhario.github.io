@@ -285,8 +285,7 @@ function startPlayback() {
     isPlaying = true;
     backVideoReady = false;
     playButton.classList.add('hidden');
-    document.getElementById('fullscreen-btn').classList.remove('hidden');
-    document.getElementById('volume-control').classList.remove('hidden');
+    document.getElementById('controls-group').classList.remove('hidden');
 
     console.log('▶️ Iniciando playback...');
 
@@ -303,8 +302,7 @@ function startPlayback() {
 function pausePlayback() {
     isPlaying = false;
     playButton.classList.remove('hidden');
-    document.getElementById('fullscreen-btn').classList.add('hidden');
-    document.getElementById('volume-control').classList.add('hidden');
+    document.getElementById('controls-group').classList.add('hidden');
 
     console.log('⏸️ Pausando playback...');
 
