@@ -75,7 +75,8 @@ function setup() {
 
     // Referência ao botão PLAY
     playButton = document.getElementById('play-button');
-    playButton.addEventListener('mousedown', togglePlayPause);
+    playButton.addEventListener('mousedown', () => spinIdleParticles());
+    playButton.addEventListener('mouseup', togglePlayPause);
     playButton.addEventListener('mouseenter', () => { playBtnHovered = true; });
     playButton.addEventListener('mouseleave', () => { playBtnHovered = false; });
 
@@ -298,9 +299,6 @@ function startPlayback() {
     backVideoReady = false;
     playButton.classList.add('hidden');
     document.getElementById('controls-group').classList.remove('hidden');
-
-    // Spin partículas (loading) — fade out quando vídeo carregar
-    spinIdleParticles();
 
     console.log('▶️ Iniciando playback...');
 
