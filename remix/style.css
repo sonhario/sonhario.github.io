@@ -58,8 +58,8 @@ html, body {
 
     width: 64px;
     height: 64px;
-    background: transparent;
-    border: 2px solid rgba(255, 255, 255, 0.4);
+    background: #1a1d2e;
+    border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -72,7 +72,7 @@ html, body {
 .play-btn svg {
     width: 24px;
     height: 24px;
-    margin-left: 3px; /* optical center — triangle points right */
+    margin-left: 2px; /* optical center — triangle points right */
     fill: rgba(255, 255, 255, 0.7);
 }
 
