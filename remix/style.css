@@ -70,9 +70,9 @@ html, body {
 }
 
 .play-btn svg {
-    width: 40px;
-    height: 40px;
-    margin-left: 6px; /* optical center — triangle points right */
+    width: 43px;
+    height: 43px;
+    margin-left: 2px; /* optical center — triangle points right */
     fill: rgba(255, 255, 255, 0.7);
 }
 
