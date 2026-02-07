@@ -45,7 +45,9 @@ function createLayerState() {
 }
 
 for (let i = 0; i < IMAGE_LAYER_COUNT; i++) {
-    imageLayers.push(createLayerState());
+    const layer = createLayerState();
+    layer.cropChance = (i === 0) ? 0.60 : 0.85; // camada 0: mais inteiras
+    imageLayers.push(layer);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -154,7 +156,7 @@ function triggerLayerOverlay(L) {
         const iw = img.naturalWidth;
         const ih = img.naturalHeight;
         const canvasMin = Math.min(width, height);
-        const doCrop = Math.random() < 0.85;
+        const doCrop = Math.random() < L.cropChance;
         let logLabel;
 
         if (doCrop) {
