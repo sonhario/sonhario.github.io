@@ -1,5 +1,5 @@
-// Relatos Completos - Sonhario
-// Layout editorial spread, fundo off-white
+// Relatos v2 - Sonhario
+// Layout A — editorial spread, fundo off-white
 
 const SUPABASE_URL = 'https://nxanctcrqdcbbuhlktzb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54YW5jdGNycWRjYmJ1aGxrdHpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNTUxOTEsImV4cCI6MjA4NDkzMTE5MX0.TkeaWGSR0MM0_VLJaOMFchdbkkM_fRPM5Zr53g7R7zk';
